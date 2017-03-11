@@ -187,6 +187,10 @@ public class StatementCoverageTestFitness extends TestFitnessFunction {
 		    this.getTargetMethod().hashCode() * iConst + this.instructionID * iConst;
 	}
 
+	public List<BranchCoverageTestFitness> getBranchFitnesses() {
+		return branchFitnesses;
+	}
+	
 	@Override
     public boolean equals(Object obj) {
         if (this == obj)
@@ -220,5 +224,9 @@ public class StatementCoverageTestFitness extends TestFitnessFunction {
 	@Override
 	public String getTargetMethod() {
 		return this.methodName;
+	}
+	
+	public BytecodeInstruction getGoalInstruction() {
+		return goalInstruction;
 	}
 }

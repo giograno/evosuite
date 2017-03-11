@@ -39,6 +39,7 @@ import org.slf4j.LoggerFactory;
  * 
  * @author Annibale Panichella
  */
+
 public class BranchFitnessGraph<T extends Chromosome, V extends FitnessFunction<T>>{
 	
 	private static final Logger logger = LoggerFactory.getLogger(BranchFitnessGraph.class);
@@ -61,9 +62,10 @@ public class BranchFitnessGraph<T extends Chromosome, V extends FitnessFunction<
 				continue;
 			}
 
-			if (branch.getInstruction().isRootBranchDependent())
-					//|| branch.getInstruction().getControlDependentBranchIds().contains(-1))
+			if (branch.getInstruction().isRootBranchDependent() 
+					|| branch.getInstruction().isDirectlyControlDependentOn(null))
 				this.rootBranches.add(fitness); 
+
 			// see dependencies for all true/false branches
 			ActualControlFlowGraph rcfg = branch.getInstruction().getActualCFG();
 			Set<BasicBlock> visitedBlock = new HashSet<BasicBlock>();
