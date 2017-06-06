@@ -19,6 +19,7 @@
  */
 package org.evosuite;
 
+import org.evosuite.Properties.Algorithm;
 import org.evosuite.Properties.AssertionStrategy;
 import org.evosuite.Properties.Criterion;
 import org.evosuite.Properties.TestFactory;
@@ -719,6 +720,9 @@ public class TestSuiteGenerator {
 			return new EntBugTestStrategy();
 		case MOSUITE:
 			return new MOSuiteStrategy();
+		case LIPS:
+			Properties.ALGORITHM = Algorithm.LIPS;
+			return new LipsStrategy();
 		case DSE:
 			return new DSEStrategy();
 		default:

@@ -136,4 +136,9 @@ public class BranchesManager<T extends Chromosome> extends StructuralGoalManager
 			}
 		}
 	}
+
+	public BranchFitnessGraph<T, FitnessFunction<T>> getGraph() {
+		return graph;
+	}
+
 }

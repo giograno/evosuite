@@ -39,6 +39,7 @@ import org.evosuite.ga.metaheuristics.GeneticAlgorithm;
 import org.evosuite.ga.metaheuristics.RandomSearch;
 import org.evosuite.ga.metaheuristics.SPEA2;
 import org.evosuite.ga.metaheuristics.SteadyStateGA;
+import org.evosuite.ga.metaheuristics.lips.LIPS;
 import org.evosuite.ga.metaheuristics.NSGAII;
 import org.evosuite.ga.metaheuristics.mosa.MOSA;
 import org.evosuite.ga.metaheuristics.mosa.DynaMOSA;
@@ -122,6 +123,8 @@ public class PropertiesSuiteGAFactory extends PropertiesSearchAlgorithmFactory<T
 			return new RegressionTestSuiteChromosomeFactory();
 		case MOSUITE:
 			return new TestSuiteChromosomeFactory(new RandomLengthTestFactory());
+		case LIPS:
+			return new TestSuiteChromosomeFactory(new RandomLengthTestFactory()); 
 		default:
 			throw new RuntimeException("Unsupported test factory: "
 					+ Properties.TEST_FACTORY);
@@ -192,6 +195,9 @@ public class PropertiesSuiteGAFactory extends PropertiesSearchAlgorithmFactory<T
         case DYNAMOSA:
         	logger.info("Chosen search algorithm: DynaMOSA");
             return new DynaMOSA<TestSuiteChromosome>(factory);
+        case LIPS:
+        	logger.info("Chosen search algorithm: LISP");
+            return new LIPS<TestSuiteChromosome>(factory);
 		default:
 			logger.info("Chosen search algorithm: StandardGA");
             {

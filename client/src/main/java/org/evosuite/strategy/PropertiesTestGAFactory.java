@@ -36,6 +36,7 @@ import org.evosuite.ga.metaheuristics.NSGAII;
 import org.evosuite.ga.metaheuristics.OnePlusOneEA;
 import org.evosuite.ga.metaheuristics.StandardGA;
 import org.evosuite.ga.metaheuristics.SteadyStateGA;
+import org.evosuite.ga.metaheuristics.lips.LIPS;
 import org.evosuite.ga.operators.crossover.CrossOverFunction;
 import org.evosuite.ga.operators.crossover.SinglePointCrossOver;
 import org.evosuite.ga.operators.crossover.SinglePointFixedCrossOver;
@@ -57,6 +58,7 @@ import org.evosuite.testcase.TestChromosome;
 import org.evosuite.testcase.factories.AllMethodsTestChromosomeFactory;
 import org.evosuite.testcase.factories.JUnitTestCarvedChromosomeFactory;
 import org.evosuite.testcase.factories.RandomLengthTestFactory;
+import org.evosuite.testsuite.TestSuiteChromosome;
 import org.evosuite.utils.ArrayUtil;
 
 /**
@@ -130,6 +132,9 @@ public class PropertiesTestGAFactory extends PropertiesSearchAlgorithmFactory<Te
         case SPEA2:
             logger.info("Chosen search algorithm: SPEA2");
             return new SPEA2<TestChromosome>(factory);
+        case LIPS:
+        	logger.info("Chosen search algorithm: LISP");
+            return new LIPS<TestChromosome>(factory);
 		default:
 			logger.info("Chosen search algorithm: StandardGA");
 			return new StandardGA<TestChromosome>(factory);
