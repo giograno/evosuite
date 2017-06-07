@@ -157,7 +157,7 @@ public class InputCoverageSuiteFitness extends TestSuiteFitnessFunction {
             if (result.hasTimeout() || result.hasTestException()) {
                 continue;
             }
-
+            
             TestChromosome test = new TestChromosome();
             test.setTestCase(result.test);
             test.setLastExecutionResult(result);
