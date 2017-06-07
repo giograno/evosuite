@@ -36,7 +36,7 @@ import org.slf4j.LoggerFactory;
 /**
  * Implementation of the Many-Objective Sorting Algorithm (MOSA) described in the
  * paper "Reformulating branch coverage as a many-objective optimization problem".
- * 
+ *
  * @author Annibale Panichella, Fitsum M. Kifetew
  */
 public class MOSA<T extends Chromosome> extends AbstractMOSA<T> {

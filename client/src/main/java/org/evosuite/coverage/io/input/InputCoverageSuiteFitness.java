@@ -71,8 +71,8 @@ public class InputCoverageSuiteFitness extends TestSuiteFitnessFunction {
         List<InputCoverageTestFitness> goals = new InputCoverageFactory().getCoverageGoals();
         for (InputCoverageTestFitness goal : goals) {
             inputCoverageMap.add(goal);
-			if(Properties.TEST_ARCHIVE)
-				Archive.getArchiveInstance().addTarget(goal);
+            if(Properties.TEST_ARCHIVE)
+                Archive.getArchiveInstance().addTarget(goal);
 
         }
     }
@@ -157,7 +157,7 @@ public class InputCoverageSuiteFitness extends TestSuiteFitnessFunction {
             if (result.hasTimeout() || result.hasTestException()) {
                 continue;
             }
-            
+
             TestChromosome test = new TestChromosome();
             test.setTestCase(result.test);
             test.setLastExecutionResult(result);
