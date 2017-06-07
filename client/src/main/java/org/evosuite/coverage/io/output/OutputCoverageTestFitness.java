@@ -62,13 +62,13 @@ public class OutputCoverageTestFitness extends TestFitnessFunction {
 		// add the observer to TestCaseExecutor if it is not included yet
 		boolean hasObserver = false;
 		TestCaseExecutor executor = TestCaseExecutor.getInstance();
-		for (ExecutionObserver ob : executor.getExecutionObservers()){
-			if (ob instanceof  OutputObserver){
+		for (ExecutionObserver ob : executor.getExecutionObservers()) {
+			if (ob instanceof OutputObserver) {
 				hasObserver = true;
 				break;
 			}
 		}
-		if (!hasObserver){
+		if (!hasObserver) {
 			OutputObserver observer = new OutputObserver();
 			executor.addObserver(observer);
 			logger.info("Added observer for output coverage");
@@ -110,7 +110,11 @@ public class OutputCoverageTestFitness extends TestFitnessFunction {
 
 	/**
 	 * <p>
+	 * <<<<<<< HEAD
 	 * getValueDescriptor
+	 * =======
+	 * getValue
+	 * >>>>>>> Fixing a logical bug in input/output coverage
 	 * </p>
 	 *
 	 * @return a {@link java.lang.String} object.
@@ -132,7 +136,7 @@ public class OutputCoverageTestFitness extends TestFitnessFunction {
 	public double getFitness(TestChromosome individual, ExecutionResult result) {
 		double fitness = 1.0;
 
-		for(Set<OutputCoverageGoal> coveredGoals : result.getOutputGoals().values()) {
+		for (Set<OutputCoverageGoal> coveredGoals : result.getOutputGoals().values()) {
 			if (!coveredGoals.contains(this.goal)) {
 				continue;
 			}
@@ -220,7 +224,7 @@ public class OutputCoverageTestFitness extends TestFitnessFunction {
 	 */
 	@Override
 	public String toString() {
-		return "[Output]: "+goal.toString();
+		return "[Output]: " + goal.toString();
 	}
 
 	/**
@@ -278,46 +282,27 @@ public class OutputCoverageTestFitness extends TestFitnessFunction {
 	/*
 	 * TODO: Move somewhere else into a utility class
 	 */
-	private static final Class<?> getClassForName(String type)
-	{
-		try
-		{
-			if( type.equals("boolean"))
-			{
+	private static final Class<?> getClassForName(String type) {
+		try {
+			if (type.equals("boolean")) {
 				return Boolean.TYPE;
-			}
-			else if(type.equals("byte"))
-			{
+			} else if (type.equals("byte")) {
 				return Byte.TYPE;
-			}
-			else if( type.equals("char"))
-			{
+			} else if (type.equals("char")) {
 				return Character.TYPE;
-			}
-			else if( type.equals("double"))
-			{
+			} else if (type.equals("double")) {
 				return Double.TYPE;
-			}
-			else if(type.equals("float"))
-			{
+			} else if (type.equals("float")) {
 				return Float.TYPE;
-			}
-			else if(type.equals("int"))
-			{
+			} else if (type.equals("int")) {
 				return Integer.TYPE;
-			}
-			else if( type.equals("long"))
-			{
+			} else if (type.equals("long")) {
 				return Long.TYPE;
-			}
-			else if(type.equals("short"))
-			{
+			} else if (type.equals("short")) {
 				return Short.TYPE;
-			}
-			else if(type.equals("String") ||type.equals("Boolean") || type.equals("Short") ||type.equals("Long") ||
-					type.equals("Integer") || type.equals("Float") || type.equals("Double") ||type.equals("Byte") ||
-					type.equals("Character") )
-			{
+			} else if (type.equals("String") || type.equals("Boolean") || type.equals("Short") || type.equals("Long") ||
+					type.equals("Integer") || type.equals("Float") || type.equals("Double") || type.equals("Byte") ||
+					type.equals("Character")) {
 				return Class.forName("java.lang." + type);
 			}
 
@@ -327,18 +312,13 @@ public class OutputCoverageTestFitness extends TestFitnessFunction {
 			//				type = type.replace(";", "");
 			//			}
 
-			if(type.endsWith("[]"))
-			{
+			if (type.endsWith("[]")) {
 				type = type.replace("[]", "");
 				return Class.forName("[L" + type + ";");
-			}
-			else
-			{
+			} else {
 				return Class.forName(type);
 			}
-		}
-		catch (final ClassNotFoundException e)
-		{
+		} catch (final ClassNotFoundException e) {
 			throw new RuntimeException(e);
 		}
 	}
