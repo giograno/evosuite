@@ -62,7 +62,7 @@ public class BranchFitnessGraph<T extends Chromosome, V extends FitnessFunction<
 				continue;
 			}
 
-			if (branch.getInstruction().isRootBranchDependent() 
+			if (branch.getInstruction().isRootBranchDependent()
 					|| branch.getInstruction().isDirectlyControlDependentOn(null))
 				this.rootBranches.add(fitness); 
 
