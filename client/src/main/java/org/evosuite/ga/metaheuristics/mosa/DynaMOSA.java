@@ -9,12 +9,12 @@ import org.evosuite.Properties;
 import org.evosuite.ga.Chromosome;
 import org.evosuite.ga.ChromosomeFactory;
 import org.evosuite.ga.FitnessFunction;
-import org.evosuite.ga.metaheuristics.mosa.comparators.OnlyCrowdingComparator;
+import org.evosuite.ga.comparators.OnlyCrowdingComparator;
 import org.evosuite.ga.metaheuristics.mosa.structural.MultiCriteriatManager;
 import org.evosuite.ga.metaheuristics.mosa.structural.StructuralGoalManager;
+import org.evosuite.ga.operators.ranking.CrowdingDistance;
 import org.evosuite.testcase.TestChromosome;
 import org.evosuite.testsuite.TestSuiteChromosome;
-import org.evosuite.testsuite.TestSuiteFitnessFunction;
 import org.evosuite.utils.LoggingUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -55,17 +55,17 @@ public class DynaMOSA<T extends Chromosome> extends AbstractMOSA<T> {
 		logger.debug("Union Size = {}", union.size());
 
 		// Ranking the union using the best rank algorithm (modified version of the non dominated sorting algorithm
-		ranking.computeRankingAssignment(union, goalsManager.getCurrentGoals());
+		this.rankingFunction.computeRankingAssignment(union, goalsManager.getCurrentGoals());
 
 		// let's form the next population using "preference sorting and non-dominated sorting" on the
 		// updated set of goals
-		int remain = Math.max(Properties.POPULATION, ranking.getSubfront(0).size());
+		int remain = Math.max(Properties.POPULATION, this.rankingFunction.getSubfront(0).size());
 		int index = 0;
 		List<T> front = null;
 		population.clear();
 
 		// Obtain the next front
-		front = ranking.getSubfront(index);
+		front = this.rankingFunction.getSubfront(index);
 
 		while ((remain > 0) && (remain >= front.size())) {
 			// Assign crowding distance to individuals
@@ -80,7 +80,7 @@ public class DynaMOSA<T extends Chromosome> extends AbstractMOSA<T> {
 			// Obtain the next front
 			index++;
 			if (remain > 0) {
-				front = ranking.getSubfront(index);
+				front = this.rankingFunction.getSubfront(index);
 			} // if
 		} // while
 
@@ -149,10 +149,10 @@ public class DynaMOSA<T extends Chromosome> extends AbstractMOSA<T> {
 		calculateFitness();
 
 		// Calculate dominance ranks and crowding distance
-		ranking.computeRankingAssignment(population, goalsManager.getCurrentGoals());
+		this.rankingFunction.computeRankingAssignment(population, goalsManager.getCurrentGoals());
 
-		for (int i = 0; i<ranking.getNumberOfSubfronts(); i++){
-			distance.fastEpsilonDominanceAssignment(ranking.getSubfront(i), goalsManager.getCurrentGoals());
+		for (int i = 0; i<this.rankingFunction.getNumberOfSubfronts(); i++){
+			distance.fastEpsilonDominanceAssignment(this.rankingFunction.getSubfront(i), goalsManager.getCurrentGoals());
 		}
 		// next generations
 		while (!isFinished() && goalsManager.getUncoveredGoals().size() > 0) {
@@ -203,12 +203,9 @@ public class DynaMOSA<T extends Chromosome> extends AbstractMOSA<T> {
 		for (T test : getArchive()) {
 			best.addTest((TestChromosome) test);
 		}
+
 		// compute overall fitness and coverage
-		for (TestSuiteFitnessFunction suiteFitness : suiteFitnesses){
-			double coverage = ((double) goalsManager.getCoveredGoals().size()) / ((double) this.fitnessFunctions.size());
-			best.setFitness(suiteFitness,  this.fitnessFunctions.size() - goalsManager.getCoveredGoals().size());
-			best.setCoverage(suiteFitness, coverage);
-		}
+		this.computeCoverageAndFitness(best);
 		//suiteFitness.getFitness(best);
 		return (T) best;
 	}

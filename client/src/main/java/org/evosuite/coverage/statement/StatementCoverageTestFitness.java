@@ -43,6 +43,8 @@ public class StatementCoverageTestFitness extends TestFitnessFunction {
 	private final String methodName;
 	private final Integer instructionID;
 
+	protected transient BytecodeInstruction goalInstruction;
+
 	protected final List<BranchCoverageTestFitness> branchFitnesses;
 
 	/**
@@ -67,7 +69,7 @@ public class StatementCoverageTestFitness extends TestFitnessFunction {
 	}
 
 	private void setupDependencies() {
-		BytecodeInstruction goalInstruction = BytecodeInstructionPool.getInstance(TestGenerationContext.getInstance().
+		this.goalInstruction = BytecodeInstructionPool.getInstance(TestGenerationContext.getInstance().
 		    getClassLoaderForSUT()).getInstruction(this.className, this.methodName, this.instructionID);
 
 		Set<ControlDependency> cds = goalInstruction.getControlDependencies();
