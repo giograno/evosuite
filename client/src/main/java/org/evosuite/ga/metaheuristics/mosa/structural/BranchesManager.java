@@ -41,8 +41,6 @@ import org.slf4j.LoggerFactory;
  * dependencies
  * 
  * @author Annibale Panichella, Fitsum Meshesha Kifetew
- *
->>>>>>> Implementation of DynaMOSA
  */
 public class BranchesManager<T extends Chromosome> extends StructuralGoalManager<T>{
 
