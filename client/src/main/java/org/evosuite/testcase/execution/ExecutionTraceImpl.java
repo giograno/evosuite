@@ -199,6 +199,9 @@ public class ExecutionTraceImpl implements ExecutionTrace, Cloneable {
 	public Map<String, Map<String, Map<Integer, Integer>>> coverage = Collections
 			.synchronizedMap(new HashMap<String, Map<String, Map<Integer, Integer>>>());
 
+	// Needed for performance indicator;
+	public Map<Integer, Integer> numberOfExecutionsPerBranch = Collections.synchronizedMap(new HashMap<>());
+
 	public Map<Integer, Integer> coveredFalse = Collections.synchronizedMap(new HashMap<Integer, Integer>());
 
 	public Map<String, Integer> coveredMethods = Collections.synchronizedMap(new HashMap<String, Integer>());
@@ -309,7 +312,7 @@ public class ExecutionTraceImpl implements ExecutionTrace, Cloneable {
 
 	/**
 	 * {@inheritDoc}
-	 * 
+	 *
 	 * Add branch to currently active method call
 	 */
 	@Override
@@ -324,6 +327,12 @@ public class ExecutionTraceImpl implements ExecutionTrace, Cloneable {
 			if ((true_distance != 0 && true_distance != 1) || (false_distance != 0 && false_distance != 1))
 				gradientBranches.add(branch);
 		}
+
+		// Computation for performances
+		if (numberOfExecutionsPerBranch.containsKey(branch))
+			numberOfExecutionsPerBranch.put(branch, numberOfExecutionsPerBranch.get(branch) + 1);
+		else
+			numberOfExecutionsPerBranch.put(branch, 1);
 
 		if (traceCoverage) {
 			if (!coveredPredicates.containsKey(branch))
@@ -367,87 +376,87 @@ public class ExecutionTraceImpl implements ExecutionTrace, Cloneable {
 			boolean cTrue = coveredTrue.containsKey(branch);
 			boolean cFalse = coveredFalse.containsKey(branch);
 			switch (previousOpcode) {
-			case Opcodes.LCMP:
-				trackBranchOpcode(bytecodeInstructionReached, RuntimeVariable.Reached_lcmp, branch);
-				if (cTrue)
-					trackBranchOpcode(bytecodeInstructionCoveredTrue, RuntimeVariable.Covered_lcmp, branch);
-				if (cFalse)
-					trackBranchOpcode(bytecodeInstructionCoveredFalse, RuntimeVariable.Covered_lcmp, branch);
-				break;
-			case Opcodes.FCMPL:
-				trackBranchOpcode(bytecodeInstructionReached, RuntimeVariable.Reached_fcmpl, branch);
-				if (cTrue)
-					trackBranchOpcode(bytecodeInstructionCoveredTrue, RuntimeVariable.Covered_fcmpl, branch);
-				if (cFalse)
-					trackBranchOpcode(bytecodeInstructionCoveredFalse, RuntimeVariable.Covered_fcmpl, branch);
-				break;
-			case Opcodes.FCMPG:
-				trackBranchOpcode(bytecodeInstructionReached, RuntimeVariable.Reached_fcmpg, branch);
-				if (cTrue)
-					trackBranchOpcode(bytecodeInstructionCoveredTrue, RuntimeVariable.Covered_fcmpg, branch);
-				if (cFalse)
-					trackBranchOpcode(bytecodeInstructionCoveredFalse, RuntimeVariable.Covered_fcmpg, branch);
-				break;
-			case Opcodes.DCMPL:
-				trackBranchOpcode(bytecodeInstructionReached, RuntimeVariable.Reached_dcmpl, branch);
-				if (cTrue)
-					trackBranchOpcode(bytecodeInstructionCoveredTrue, RuntimeVariable.Covered_dcmpl, branch);
-				if (cFalse)
-					trackBranchOpcode(bytecodeInstructionCoveredFalse, RuntimeVariable.Covered_dcmpl, branch);
-				break;
-			case Opcodes.DCMPG:
-				trackBranchOpcode(bytecodeInstructionReached, RuntimeVariable.Reached_dcmpg, branch);
-				if (cTrue)
-					trackBranchOpcode(bytecodeInstructionCoveredTrue, RuntimeVariable.Covered_dcmpg, branch);
-				if (cFalse)
-					trackBranchOpcode(bytecodeInstructionCoveredFalse, RuntimeVariable.Covered_dcmpg, branch);
-				break;
+				case Opcodes.LCMP:
+					trackBranchOpcode(bytecodeInstructionReached, RuntimeVariable.Reached_lcmp, branch);
+					if (cTrue)
+						trackBranchOpcode(bytecodeInstructionCoveredTrue, RuntimeVariable.Covered_lcmp, branch);
+					if (cFalse)
+						trackBranchOpcode(bytecodeInstructionCoveredFalse, RuntimeVariable.Covered_lcmp, branch);
+					break;
+				case Opcodes.FCMPL:
+					trackBranchOpcode(bytecodeInstructionReached, RuntimeVariable.Reached_fcmpl, branch);
+					if (cTrue)
+						trackBranchOpcode(bytecodeInstructionCoveredTrue, RuntimeVariable.Covered_fcmpl, branch);
+					if (cFalse)
+						trackBranchOpcode(bytecodeInstructionCoveredFalse, RuntimeVariable.Covered_fcmpl, branch);
+					break;
+				case Opcodes.FCMPG:
+					trackBranchOpcode(bytecodeInstructionReached, RuntimeVariable.Reached_fcmpg, branch);
+					if (cTrue)
+						trackBranchOpcode(bytecodeInstructionCoveredTrue, RuntimeVariable.Covered_fcmpg, branch);
+					if (cFalse)
+						trackBranchOpcode(bytecodeInstructionCoveredFalse, RuntimeVariable.Covered_fcmpg, branch);
+					break;
+				case Opcodes.DCMPL:
+					trackBranchOpcode(bytecodeInstructionReached, RuntimeVariable.Reached_dcmpl, branch);
+					if (cTrue)
+						trackBranchOpcode(bytecodeInstructionCoveredTrue, RuntimeVariable.Covered_dcmpl, branch);
+					if (cFalse)
+						trackBranchOpcode(bytecodeInstructionCoveredFalse, RuntimeVariable.Covered_dcmpl, branch);
+					break;
+				case Opcodes.DCMPG:
+					trackBranchOpcode(bytecodeInstructionReached, RuntimeVariable.Reached_dcmpg, branch);
+					if (cTrue)
+						trackBranchOpcode(bytecodeInstructionCoveredTrue, RuntimeVariable.Covered_dcmpg, branch);
+					if (cFalse)
+						trackBranchOpcode(bytecodeInstructionCoveredFalse, RuntimeVariable.Covered_dcmpg, branch);
+					break;
 			}
 			switch (opcode) {
-			// copmpare int with zero
-			case Opcodes.IFEQ:
-			case Opcodes.IFNE:
-			case Opcodes.IFLT:
-			case Opcodes.IFGE:
-			case Opcodes.IFGT:
-			case Opcodes.IFLE:
-				trackBranchOpcode(bytecodeInstructionReached, RuntimeVariable.Reached_IntZero, branch);
-				if (cTrue)
-					trackBranchOpcode(bytecodeInstructionCoveredTrue, RuntimeVariable.Covered_IntZero, branch);
-				if (cFalse)
-					trackBranchOpcode(bytecodeInstructionCoveredFalse, RuntimeVariable.Covered_IntZero, branch);
-				break;
-			// copmpare int with int
-			case Opcodes.IF_ICMPEQ:
-			case Opcodes.IF_ICMPNE:
-			case Opcodes.IF_ICMPLT:
-			case Opcodes.IF_ICMPGE:
-			case Opcodes.IF_ICMPGT:
-			case Opcodes.IF_ICMPLE:
-				trackBranchOpcode(bytecodeInstructionReached, RuntimeVariable.Reached_IntInt, branch);
-				if (cTrue)
-					trackBranchOpcode(bytecodeInstructionCoveredTrue, RuntimeVariable.Covered_IntInt, branch);
-				if (cFalse)
-					trackBranchOpcode(bytecodeInstructionCoveredFalse, RuntimeVariable.Covered_IntInt, branch);
-				break;
-			// copmpare reference with reference
-			case Opcodes.IF_ACMPEQ:
-			case Opcodes.IF_ACMPNE:
-				trackBranchOpcode(bytecodeInstructionReached, RuntimeVariable.Reached_RefRef, branch);
-				if (cTrue)
-					trackBranchOpcode(bytecodeInstructionCoveredTrue, RuntimeVariable.Covered_RefRef, branch);
-				if (cFalse)
-					trackBranchOpcode(bytecodeInstructionCoveredFalse, RuntimeVariable.Covered_RefRef, branch);
-				break;
-			// compare reference with null
-			case Opcodes.IFNULL:
-			case Opcodes.IFNONNULL:
-				trackBranchOpcode(bytecodeInstructionReached, RuntimeVariable.Reached_RefNull, branch);
-				if (cTrue)
-					trackBranchOpcode(bytecodeInstructionCoveredTrue, RuntimeVariable.Covered_RefNull, branch);
-				if (cFalse)
-					trackBranchOpcode(bytecodeInstructionCoveredFalse, RuntimeVariable.Covered_RefNull, branch);
-				break;
+				// copmpare int with zero
+				case Opcodes.IFEQ:
+				case Opcodes.IFNE:
+				case Opcodes.IFLT:
+				case Opcodes.IFGE:
+				case Opcodes.IFGT:
+				case Opcodes.IFLE:
+					trackBranchOpcode(bytecodeInstructionReached, RuntimeVariable.Reached_IntZero, branch);
+					if (cTrue)
+						trackBranchOpcode(bytecodeInstructionCoveredTrue, RuntimeVariable.Covered_IntZero, branch);
+					if (cFalse)
+						trackBranchOpcode(bytecodeInstructionCoveredFalse, RuntimeVariable.Covered_IntZero, branch);
+					break;
+				// copmpare int with int
+				case Opcodes.IF_ICMPEQ:
+				case Opcodes.IF_ICMPNE:
+				case Opcodes.IF_ICMPLT:
+				case Opcodes.IF_ICMPGE:
+				case Opcodes.IF_ICMPGT:
+				case Opcodes.IF_ICMPLE:
+					trackBranchOpcode(bytecodeInstructionReached, RuntimeVariable.Reached_IntInt, branch);
+					if (cTrue)
+						trackBranchOpcode(bytecodeInstructionCoveredTrue, RuntimeVariable.Covered_IntInt, branch);
+					if (cFalse)
+						trackBranchOpcode(bytecodeInstructionCoveredFalse, RuntimeVariable.Covered_IntInt, branch);
+					break;
+				// copmpare reference with reference
+				case Opcodes.IF_ACMPEQ:
+				case Opcodes.IF_ACMPNE:
+					trackBranchOpcode(bytecodeInstructionReached, RuntimeVariable.Reached_RefRef, branch);
+					if (cTrue)
+						trackBranchOpcode(bytecodeInstructionCoveredTrue, RuntimeVariable.Covered_RefRef, branch);
+					if (cFalse)
+						trackBranchOpcode(bytecodeInstructionCoveredFalse, RuntimeVariable.Covered_RefRef, branch);
+					break;
+				// compare reference with null
+				case Opcodes.IFNULL:
+				case Opcodes.IFNONNULL:
+					trackBranchOpcode(bytecodeInstructionReached, RuntimeVariable.Reached_RefNull, branch);
+					if (cTrue)
+						trackBranchOpcode(bytecodeInstructionCoveredTrue, RuntimeVariable.Covered_RefNull, branch);
+					if (cFalse)
+						trackBranchOpcode(bytecodeInstructionCoveredFalse, RuntimeVariable.Covered_RefNull, branch);
+					break;
 
 			}
 		}
@@ -546,6 +555,7 @@ public class ExecutionTraceImpl implements ExecutionTrace, Cloneable {
 		stack.add(new MethodCall("", "", 0, 0, 0)); // Main method
 		coverage = new HashMap<String, Map<String, Map<Integer, Integer>>>();
 		returnData = new HashMap<String, Map<String, Map<Integer, Integer>>>();
+		numberOfExecutionsPerBranch = new HashMap<>();
 
 		methodId = 0;
 		duCounter = 0;
@@ -610,6 +620,7 @@ public class ExecutionTraceImpl implements ExecutionTrace, Cloneable {
 		copy.passedDefinitionObject.putAll(passedDefinitionObject);
 		copy.passedUseObject.putAll(passedUseObject);
 		copy.branchesTrace.addAll(branchesTrace);
+		copy.numberOfExecutionsPerBranch.putAll(numberOfExecutionsPerBranch);
 
 		copy.coveredTrueContext.putAll(coveredTrueContext);
 		copy.coveredFalseContext.putAll(coveredFalseContext);
@@ -1813,4 +1824,8 @@ public class ExecutionTraceImpl implements ExecutionTrace, Cloneable {
 		return this.initializedClasses;
 	}
 
+	@Override
+	public Map<Integer, Integer> getNoExecutionForConditionalNode() {
+		return numberOfExecutionsPerBranch;
+	}
 }
