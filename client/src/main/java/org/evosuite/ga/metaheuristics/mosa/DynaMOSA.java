@@ -19,20 +19,21 @@
  */
 package org.evosuite.ga.metaheuristics.mosa;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 import java.util.Map.Entry;
-import java.util.Set;
 
 import org.evosuite.Properties;
 import org.evosuite.ga.Chromosome;
 import org.evosuite.ga.ChromosomeFactory;
 import org.evosuite.ga.FitnessFunction;
+import org.evosuite.ga.archive.Archive;
 import org.evosuite.ga.comparators.OnlyCrowdingComparator;
 import org.evosuite.ga.metaheuristics.mosa.structural.MultiCriteriatManager;
 import org.evosuite.ga.metaheuristics.mosa.structural.StructuralGoalManager;
 import org.evosuite.ga.operators.ranking.CrowdingDistance;
+import org.evosuite.performance.AbstractIndicator;
+import org.evosuite.performance.indicator.IndicatorsFactory;
+import org.evosuite.testcase.TestCase;
 import org.evosuite.testcase.TestChromosome;
 import org.evosuite.testsuite.TestSuiteChromosome;
 import org.evosuite.testsuite.TestSuiteFitnessFunction;
@@ -47,7 +48,8 @@ import org.slf4j.LoggerFactory;
  * 
  * @author Annibale Panichella, Fitsum M. Kifetew, Paolo Tonell
  */
-public class DynaMOSA<T extends Chromosome> extends AbstractMOSA<T> {
+@SuppressWarnings("Duplicates")
+public class DynaMOSA<T extends Chromosome> extends MOSA<T> {
 
 	private static final long serialVersionUID = 146182080947267628L;
 
@@ -58,6 +60,9 @@ public class DynaMOSA<T extends Chromosome> extends AbstractMOSA<T> {
 
 	protected CrowdingDistance<T> distance = new CrowdingDistance<T>();
 
+	/* the list of performance indicators */
+	protected List<AbstractIndicator> indicators;
+
 	/**
 	 * Constructor based on the abstract class {@link AbstractMOSA}.
 	 * 
@@ -65,6 +70,12 @@ public class DynaMOSA<T extends Chromosome> extends AbstractMOSA<T> {
 	 */
 	public DynaMOSA(ChromosomeFactory<T> factory) {
 		super(factory);
+
+		/* -------------------------------------- archiver printing ----------------------------------------------*/
+		indicators = IndicatorsFactory.getPerformanceIndicator();
+
+		LoggingUtils.getEvoLogger().info("* Archiver in use = " + Archive.getArchiveInstance().getClass().getName());
+		/* -------------------------------------- archiver printing ----------------------------------------------*/
 	}
 
 	/** {@inheritDoc} */
@@ -158,6 +169,12 @@ public class DynaMOSA<T extends Chromosome> extends AbstractMOSA<T> {
 			this.distance.fastEpsilonDominanceAssignment(this.rankingFunction.getSubfront(i), this.goalsManager.getCurrentGoals());
 		}
 
+		/* --------------------------------- calculate performance indicators --------------------------------- */
+		Set<TestChromosome> solutions = Archive.getArchiveInstance().getSolutions();
+		computePerformanceMetrics(solutions);
+		printPerformanceMetrics(solutions);
+		/* --------------------------------- calculate performance indicators --------------------------------- */
+
 		// next generations
 		while (!isFinished() && this.goalsManager.getUncoveredGoals().size() > 0) {
 			this.evolve();
@@ -165,6 +182,26 @@ public class DynaMOSA<T extends Chromosome> extends AbstractMOSA<T> {
 		}
 
 		this.notifySearchFinished();
+	}
+
+	protected void computePerformanceMetrics(Set<TestChromosome> tests) {
+		tests.stream().forEach(t ->
+				indicators.stream().forEach(i -> i.getIndicatorValue(t)));
+	}
+
+	protected void printPerformanceMetrics(Set<TestChromosome> tests){
+		LoggingUtils.getEvoLogger().info("\nNumber of tests = {} ", tests.size());
+		LoggingUtils.getEvoLogger().info("* Indicators:");
+
+		for (AbstractIndicator indicator : indicators) {
+			double value = 0;
+
+			for (Chromosome tch : tests) {
+				value += tch.getIndicatorValue(indicator.getIndicatorId());
+			}
+
+			LoggingUtils.getEvoLogger().info("* Indicator value for {} is {}", indicator, value);
+		}
 	}
 
 	/** 
@@ -289,6 +326,7 @@ public class DynaMOSA<T extends Chromosome> extends AbstractMOSA<T> {
 	 */
 	@Override
 	protected void computeCoverageAndFitness(TestSuiteChromosome suite) {
+
 		for (Entry<TestSuiteFitnessFunction, Class<?>> entry : this.suiteFitnessFunctions.entrySet()) {
 			TestSuiteFitnessFunction suiteFitnessFunction = entry.getKey();
 			Class<?> testFitnessFunction = entry.getValue();

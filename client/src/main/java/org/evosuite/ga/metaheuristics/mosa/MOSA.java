@@ -62,7 +62,7 @@ public class MOSA<T extends Chromosome> extends AbstractMOSA<T> {
 	private SelectionFunction<T> emigrantsSelection;
 
 	/** Crowding distance measure to use */
-	protected CrowdingDistance<T> distance = new CrowdingDistance<T>();
+	protected CrowdingDistance<T> distance = new CrowdingDistance<>();
 
 	/**
 	 * Constructor based on the abstract class {@link AbstractMOSA}
@@ -105,7 +105,7 @@ public class MOSA<T extends Chromosome> extends AbstractMOSA<T> {
 		// Ranking the union
 		logger.debug("Union Size =" + union.size());
 		// Ranking the union using the best rank algorithm (modified version of the non dominated sorting algorithm)
-		this.rankingFunction.computeRankingAssignment(union, uncoveredGoals);
+		this.ranking.computeRankingAssignment(union, uncoveredGoals);
 
 		int remain = this.population.size();
 		int index = 0;
@@ -113,13 +113,13 @@ public class MOSA<T extends Chromosome> extends AbstractMOSA<T> {
 		this.population.clear();
 
 		// Obtain the next front
-		front = this.rankingFunction.getSubfront(index);
+		front = this.ranking.getSubfront(index);
 
 		while ((remain > 0) && (remain >= front.size()) && !front.isEmpty()) {
 			// Assign crowding distance to individuals
-			this.distance.fastEpsilonDominanceAssignment(front, uncoveredGoals);
+			distance.fastEpsilonDominanceAssignment(front, uncoveredGoals);
 			// Add the individuals of this front
-			this.population.addAll(front);
+			population.addAll(front);
 
 			// Decrement remain
 			remain = remain - front.size();
@@ -127,16 +127,16 @@ public class MOSA<T extends Chromosome> extends AbstractMOSA<T> {
 			// Obtain the next front
 			index++;
 			if (remain > 0) {
-				front = this.rankingFunction.getSubfront(index);
+				front = ranking.getSubfront(index);
 			}
 		}
 
 		// Remain is less than front(index).size, insert only the best one
 		if (remain > 0 && !front.isEmpty()) { // front contains individuals to insert
-			this.distance.fastEpsilonDominanceAssignment(front, uncoveredGoals);
+			distance.fastEpsilonDominanceAssignment(front, uncoveredGoals);
 			Collections.sort(front, new OnlyCrowdingComparator());
 			for (int k = 0; k < remain; k++) {
-				this.population.add(front.get(k));
+				population.add(front.get(k));
 			}
 
 			remain = 0;
@@ -145,7 +145,7 @@ public class MOSA<T extends Chromosome> extends AbstractMOSA<T> {
 		// for parallel runs: collect best k individuals for migration
 		if (Properties.NUM_PARALLEL_CLIENTS > 1 && Properties.MIGRANTS_ITERATION_FREQUENCY > 0) {
 			if ((currentIteration + 1) % Properties.MIGRANTS_ITERATION_FREQUENCY == 0 && !this.population.isEmpty()) {
-				HashSet<T> emigrants = new HashSet<>(emigrantsSelection.select(this.population, Properties.MIGRANTS_COMMUNICATION_RATE));
+				HashSet<T> emigrants = new HashSet<>(emigrantsSelection.select(population, Properties.MIGRANTS_COMMUNICATION_RATE));
 				ClientServices.getInstance().getClientNode().emigrate(emigrants);
 			}
 		}
@@ -169,9 +169,9 @@ public class MOSA<T extends Chromosome> extends AbstractMOSA<T> {
 		}
 
 		// Calculate dominance ranks and crowding distance
-		this.rankingFunction.computeRankingAssignment(this.population, this.getUncoveredGoals());
-		for (int i = 0; i < this.rankingFunction.getNumberOfSubfronts(); i++) {
-			this.distance.fastEpsilonDominanceAssignment(this.rankingFunction.getSubfront(i), this.getUncoveredGoals());
+		ranking.computeRankingAssignment(this.population, this.getUncoveredGoals());
+		for (int i = 0; i < this.ranking.getNumberOfSubfronts(); i++) {
+			this.distance.fastEpsilonDominanceAssignment(ranking.getSubfront(i), this.getUncoveredGoals());
 		}
 
 		Listener<Set<? extends Chromosome>> listener = null;

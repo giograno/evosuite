@@ -42,6 +42,10 @@ import org.evosuite.ga.archive.Archive;
 import org.evosuite.ga.comparators.DominanceComparator;
 import org.evosuite.ga.metaheuristics.GeneticAlgorithm;
 import org.evosuite.ga.metaheuristics.SearchListener;
+import org.evosuite.ga.operators.ranking.FastNonDominatedSorting;
+import org.evosuite.ga.operators.ranking.PerformanceBasedPreferenceSorting;
+import org.evosuite.ga.operators.ranking.RankBasedPreferenceSorting;
+import org.evosuite.ga.operators.ranking.RankingFunction;
 import org.evosuite.testcase.TestCase;
 import org.evosuite.testcase.TestChromosome;
 import org.evosuite.testcase.TestFitnessFunction;
@@ -79,6 +83,9 @@ public abstract class AbstractMOSA<T extends Chromosome> extends GeneticAlgorith
 	/** Object used to keep track of the execution time needed to reach the maximum coverage */
 	protected final BudgetConsumptionMonitor budgetMonitor;
 
+	/** Selected ranking strategy **/
+	protected RankingFunction<T> ranking;
+
 	/**
 	 * Constructor.
 	 *
@@ -106,6 +113,22 @@ public abstract class AbstractMOSA<T extends Chromosome> extends GeneticAlgorith
 							+ SelectionFunction.RANK_CROWD_DISTANCE_TOURNAMENT.name()
 							+ "' selection function. You may want to consider using it.");
 		}
+
+		// ------------------------------------------- ranking selection ------------------------------------------- //
+
+		if (Properties.P_STRATEGY == Properties.PerformanceMOSAStrategy.PREFERENCE_CRITERION &&
+				Properties.ALGORITHM == Properties.Algorithm.PMOSA)
+			ranking = new PerformanceBasedPreferenceSorting<>();
+		else if (Properties.RANKING_TYPE ==  Properties.RankingType.PREFERENCE_SORTING)
+			ranking = new RankBasedPreferenceSorting<>();
+		else if (Properties.RANKING_TYPE ==  Properties.RankingType.FAST_NON_DOMINATED_SORTING)
+			ranking = new FastNonDominatedSorting<>();
+		else
+			ranking = new RankBasedPreferenceSorting<T>(); // default ranking strategy
+		LoggingUtils.getEvoLogger().info(String.format("* Ranking in use = " + ranking.getClass().getCanonicalName()));
+
+		// ------------------------------------------- ranking selection ------------------------------------------- //
+
 	}
 
 	/**
