@@ -32,12 +32,15 @@ import org.evosuite.coverage.branch.Branch;
 import org.evosuite.coverage.branch.BranchPool;
 import org.evosuite.coverage.exception.ExceptionCoverageSuiteFitness;
 import org.evosuite.ga.Chromosome;
+import org.evosuite.performance.AbstractIndicator;
+import org.evosuite.performance.indicator.*;
 import org.evosuite.rmi.ClientServices;
 import org.evosuite.testcase.TestChromosome;
 import org.evosuite.testcase.execution.ExecutionResult;
 import org.evosuite.testcase.execution.ExecutionTrace;
 import org.evosuite.testcase.execution.TestCaseExecutor;
 import org.evosuite.testsuite.TestSuiteChromosome;
+import org.evosuite.utils.LoggingUtils;
 
 /**
  * Class responsible to send "individuals" from Client to Master process.
@@ -95,7 +98,11 @@ public class StatisticsSender {
 
 		sendCoveredInfo(testSuite);
 		sendExceptionInfo(testSuite);
-		sendIndividualToMaster(testSuite);		
+		sendIndividualToMaster(testSuite);
+		/* ----------------------------call to performance indicators---------------------------------------------- */
+		// todo: are they always computed?
+		sendPerformanceIndicator(testSuite);
+
 	}
 
 	// -------- private methods ------------------------
@@ -132,6 +139,40 @@ public class StatisticsSender {
 		 */
 	}
 
+	private static void sendPerformanceIndicator(TestSuiteChromosome testSuite) {
+		// Compute the performance metric at test suite level
+		List<AbstractIndicator> indicators = IndicatorsFactory.getPerformanceIndicator();
+		List<TestChromosome> chromosomes = testSuite.getTestChromosomes();
+		LoggingUtils.getEvoLogger().info("* Test suite size is {}", chromosomes.size());
+		for (AbstractIndicator indicator : indicators) {
+			double value = 0;
+			for (TestChromosome tch : chromosomes) {
+//				we already have the value calculated! We do not need to compute it again! (stored in the Chromosome)
+//				value += indicator.getIndicatorValue(tch);
+				value += tch.getIndicatorValue(indicator.getIndicatorId());
+			}
+
+			// Save the final scores into RuntimeVariable
+			if (indicator.getIndicatorId().equals(MethodCallCounter.class.getName()))
+				ClientServices.getInstance().getClientNode().trackOutputVariable(
+						RuntimeVariable.MethodCall, value);
+			if (indicator.getIndicatorId().equals(CoveredMethodCallCounter.class.getName()))
+				ClientServices.getInstance().getClientNode().trackOutputVariable(
+						RuntimeVariable.CoveredMethodCall, value);
+			if (indicator.getIndicatorId().equals(ObjectInstantiations.class.getName()))
+				ClientServices.getInstance().getClientNode().trackOutputVariable(
+						RuntimeVariable.ObjectsInstantiations, value);
+			if (indicator.getIndicatorId().equals(StatementsCounter.class.getName()))
+				ClientServices.getInstance().getClientNode().trackOutputVariable(
+						RuntimeVariable.StatementCounter, value);
+			if (indicator.getIndicatorId().equals(CoveredStatementsCounter.class.getName()))
+				ClientServices.getInstance().getClientNode().trackOutputVariable(
+						RuntimeVariable.StatementCovered, value);
+			if (indicator.getIndicatorId().equals(LoopCounter.class.getName()))
+				ClientServices.getInstance().getClientNode().trackOutputVariable(
+						RuntimeVariable.LoopCounter, value);
+		}
+	}
 	
 
 	private static void sendCoveredInfo(TestSuiteChromosome testSuite){

@@ -117,7 +117,8 @@ public abstract class AbstractMOSA<T extends Chromosome> extends GeneticAlgorith
 		// ------------------------------------------- ranking selection ------------------------------------------- //
 
 		if (Properties.P_STRATEGY == Properties.PerformanceMOSAStrategy.PREFERENCE_CRITERION &&
-				Properties.ALGORITHM == Properties.Algorithm.PMOSA)
+				(Properties.ALGORITHM == Properties.Algorithm.PMOSA ||
+				Properties.ALGORITHM == Properties.Algorithm.PDMOSA))
 			ranking = new PerformanceBasedPreferenceSorting<>();
 		else if (Properties.RANKING_TYPE ==  Properties.RankingType.PREFERENCE_SORTING)
 			ranking = new RankBasedPreferenceSorting<>();

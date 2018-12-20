@@ -35,6 +35,7 @@ import org.evosuite.ga.metaheuristics.*;
 import org.evosuite.ga.metaheuristics.mosa.DynaMOSA;
 import org.evosuite.ga.metaheuristics.mosa.MOSA;
 import org.evosuite.ga.metaheuristics.mosa.DynaMOSA;
+import org.evosuite.ga.metaheuristics.mosa.PerformanceDynaMOSA;
 import org.evosuite.ga.metaheuristics.mulambda.MuLambdaEA;
 import org.evosuite.ga.metaheuristics.mulambda.MuPlusLambdaEA;
 import org.evosuite.ga.metaheuristics.mulambda.OnePlusLambdaLambdaGA;
@@ -204,6 +205,9 @@ public class PropertiesSuiteGAFactory extends PropertiesSearchAlgorithmFactory<T
 		case DYNAMOSA:
         	logger.info("Chosen search algorithm: DynaMOSA");
             return new DynaMOSA<TestSuiteChromosome>(factory);
+		case PDMOSA:
+			logger.info("Chosen search algorithm: Performance DynaMOSA");
+			return new PerformanceDynaMOSA<>(factory);
         case ONE_PLUS_LAMBDA_LAMBDA_GA:
             logger.info("Chosen search algorithm: 1 + (lambda, lambda)GA");
             {
