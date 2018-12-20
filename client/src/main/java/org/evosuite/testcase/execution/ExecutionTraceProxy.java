@@ -735,4 +735,9 @@ public class ExecutionTraceProxy implements ExecutionTrace, Cloneable {
 		return trace.getInitializedClasses();
 	}
 
+	@Override
+	public Map<Integer, Integer> getNoExecutionForConditionalNode() {
+		return trace.getNoExecutionForConditionalNode();
+	}
+
 }
