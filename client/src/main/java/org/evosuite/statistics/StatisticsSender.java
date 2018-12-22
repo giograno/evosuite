@@ -101,8 +101,9 @@ public class StatisticsSender {
 		sendExceptionInfo(testSuite);
 		sendIndividualToMaster(testSuite);
 		/* ----------------------------call to performance indicators---------------------------------------------- */
-		// todo: are they always computed?
+
 		sendRepeatedExecutionTime(testSuite);
+//		if (Properties.ALGORITHM == Properties.Algorithm.PMOSA || Properties.ALGORITHM == Properties.Algorithm.PDMOSA)
 		sendPerformanceIndicator(testSuite);
 
 	}

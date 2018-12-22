@@ -50,7 +50,7 @@ public class BranchesManager<T extends Chromosome> extends StructuralGoalManager
 
 	protected final Map<Integer, FitnessFunction<T>> branchCoverageTrueMap = new HashMap<Integer, FitnessFunction<T>>();
 	protected final Map<Integer, FitnessFunction<T>> branchCoverageFalseMap = new HashMap<Integer, FitnessFunction<T>>();
-	private final Map<String, FitnessFunction<T>> branchlessMethodCoverageMap = new HashMap<String, FitnessFunction<T>>();
+	protected final Map<String, FitnessFunction<T>> branchlessMethodCoverageMap = new HashMap<String, FitnessFunction<T>>();
 
 	/**
 	 * Constructor used to initialize the set of uncovered goals, and the initial set
@@ -89,6 +89,7 @@ public class BranchesManager<T extends Chromosome> extends StructuralGoalManager
 		}
 	}
 
+	@SuppressWarnings("Duplicates")
 	public void calculateFitness(T c){
 		// run the test
 		TestCase test = ((TestChromosome) c).getTestCase();

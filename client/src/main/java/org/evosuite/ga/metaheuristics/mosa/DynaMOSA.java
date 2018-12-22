@@ -149,7 +149,7 @@ public class DynaMOSA<T extends Chromosome> extends MOSA<T> {
 
 		this.goalsManager = new MultiCriteriatManager<T>(this.fitnessFunctions);
 
-		LoggingUtils.getEvoLogger().info("* Initial Number of Goals in DynMOSA = " +
+		LoggingUtils.getEvoLogger().info("* Initial Number of Goals in DynaMOSA = " +
 				this.goalsManager.getCurrentGoals().size() +" / "+ this.getUncoveredGoals().size());
 
 		logger.debug("Initial Number of Goals = " + this.goalsManager.getCurrentGoals().size());
@@ -169,27 +169,26 @@ public class DynaMOSA<T extends Chromosome> extends MOSA<T> {
 			this.distance.fastEpsilonDominanceAssignment(this.rankingFunction.getSubfront(i), this.goalsManager.getCurrentGoals());
 		}
 
-		/* --------------------------------- calculate performance indicators --------------------------------- */
-		Set<TestChromosome> solutions = Archive.getArchiveInstance().getSolutions();
-		computePerformanceMetrics(solutions);
-		printPerformanceMetrics(solutions);
-		/* --------------------------------- calculate performance indicators --------------------------------- */
-
 		// next generations
 		while (!isFinished() && this.goalsManager.getUncoveredGoals().size() > 0) {
 			this.evolve();
 			this.notifyIteration();
 		}
 
+		/* -------------------------- calculate the performance indicators to save them ---------------------------*/
+		Set<T> archive = goalsManager.getArchive();
+		computePerformanceMetrics(archive);
+		printPerformanceMetrics(archive);
+
 		this.notifySearchFinished();
 	}
 
-	protected void computePerformanceMetrics(Set<TestChromosome> tests) {
+	protected void computePerformanceMetrics(Set<T> tests) {
 		tests.stream().forEach(t ->
 				indicators.stream().forEach(i -> i.getIndicatorValue(t)));
 	}
 
-	protected void printPerformanceMetrics(Set<TestChromosome> tests){
+	protected void printPerformanceMetrics(Set<T> tests){
 		LoggingUtils.getEvoLogger().info("\nNumber of tests = {} ", tests.size());
 		LoggingUtils.getEvoLogger().info("* Indicators:");
 
