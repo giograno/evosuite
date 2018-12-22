@@ -70,12 +70,7 @@ public class DynaMOSA<T extends Chromosome> extends MOSA<T> {
 	 */
 	public DynaMOSA(ChromosomeFactory<T> factory) {
 		super(factory);
-
-		/* -------------------------------------- archiver printing ----------------------------------------------*/
 		indicators = IndicatorsFactory.getPerformanceIndicator();
-
-		LoggingUtils.getEvoLogger().info("* Archiver in use = " + Archive.getArchiveInstance().getClass().getName());
-		/* -------------------------------------- archiver printing ----------------------------------------------*/
 	}
 
 	/** {@inheritDoc} */
