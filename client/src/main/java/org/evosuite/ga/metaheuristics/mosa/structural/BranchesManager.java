@@ -89,14 +89,22 @@ public class BranchesManager<T extends Chromosome> extends StructuralGoalManager
 		}
 	}
 
+	public void runTest(T c){
+		TestChromosome tch = (TestChromosome) c;
+		if (tch.getLastExecutionResult() == null) {
+			// run the test
+			TestCase test = ((TestChromosome) c).getTestCase();
+			ExecutionResult result = TestCaseExecutor.runTest(test);
+			((TestChromosome) c).setLastExecutionResult(result);
+			c.setChanged(false);
+		}
+	}
+
 	@SuppressWarnings("Duplicates")
 	public void calculateFitness(T c){
-		// run the test
-		TestCase test = ((TestChromosome) c).getTestCase();
-		ExecutionResult result = TestCaseExecutor.runTest(test);
-		((TestChromosome) c).setLastExecutionResult(result);
-		c.setChanged(false);
-		
+		this.runTest(c);
+		ExecutionResult result = ((TestChromosome) c).getLastExecutionResult();
+
 		if (result.hasTimeout() || result.hasTestException()){
 			for (FitnessFunction<T> f : currentGoals)
 					c.setFitness(f, Double.MAX_VALUE);
