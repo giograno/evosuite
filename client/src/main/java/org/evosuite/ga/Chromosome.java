@@ -646,7 +646,6 @@ public abstract class Chromosome implements Comparable<Chromosome>, Serializable
 	public LinkedHashMap<String, Double> getIndicatorValues() {
 		return indicatorValues;
 	}
-	private double minMaxSum = 0;
 
 	/**
 	 * Sets the value for an indicator
@@ -674,21 +673,6 @@ public abstract class Chromosome implements Comparable<Chromosome>, Serializable
 	 * @param map
 	 */
 	public void setIndicatorValues(LinkedHashMap<String, Double> map) { this.indicatorValues = map; }
-
-	/**
-	 * Returns the sum of the indicators normalized with min max
-	 */
-	public double getMinMaxSum() {
-		return minMaxSum;
-	}
-
-	/**
-	 * Sets the min max normalized sum for the indicators
-	 * @param minMaxSum	the normalized sum
-	 */
-	public void setMinMaxSum(double minMaxSum) {
-		this.minMaxSum = minMaxSum;
-	}
 
 	/**
 	 * The score used by the preference criterion, combining all the the performance indicators,
