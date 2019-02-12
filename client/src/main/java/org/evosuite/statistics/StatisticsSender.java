@@ -19,12 +19,7 @@
  */
 package org.evosuite.statistics;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 import org.evosuite.Properties;
 import org.evosuite.TestGenerationContext;
@@ -157,13 +152,11 @@ public class StatisticsSender {
 		Set<FitnessFunction<?>> ffs = testSuite.getFitnessValues().keySet();
 		for (int i = 0; i<Properties.NUM_TEST_RUNS -1; i++){
 			testSuite.setChanged(true);
-			for (TestChromosome test : chromosomes)
+			for (TestChromosome test : chromosomes) {
 				test.setChanged(true);
-			for (FitnessFunction f : ffs)
-				f.getFitness(testSuite);
-
-			for (ExecutionResult res : testSuite.getLastExecutionResults())
-				executionTime += res.getExecutionTime();
+				ExecutionResult result = TestCaseExecutor.runTest(test.getTestCase());
+				executionTime += result.getExecutionTime();
+			}
 		}
 
 		executionTime = executionTime / (long) Properties.NUM_TEST_RUNS;
