@@ -38,6 +38,8 @@ import org.evosuite.ga.operators.selection.BestKSelection;
 import org.evosuite.ga.operators.selection.RandomKSelection;
 import org.evosuite.ga.operators.selection.RankSelection;
 import org.evosuite.ga.operators.selection.SelectionFunction;
+import org.evosuite.performance.AbstractIndicator;
+import org.evosuite.performance.indicator.IndicatorsFactory;
 import org.evosuite.rmi.ClientServices;
 import org.evosuite.statistics.RuntimeVariable;
 import org.evosuite.utils.Listener;
@@ -64,13 +66,15 @@ public class MOSA<T extends Chromosome> extends AbstractMOSA<T> {
 	/** Crowding distance measure to use */
 	protected CrowdingDistance<T> distance = new CrowdingDistance<>();
 
+	protected List<AbstractIndicator> indicators;
+
 	/**
 	 * Constructor based on the abstract class {@link AbstractMOSA}
 	 * @param factory
 	 */
 	public MOSA(ChromosomeFactory<T> factory) {
 		super(factory);
-
+		indicators = IndicatorsFactory.getPerformanceIndicator();
 		switch (Properties.EMIGRANT_SELECTION_FUNCTION) {
 			case RANK:
 				this.emigrantsSelection = new RankSelection<>();
@@ -217,6 +221,12 @@ public class MOSA<T extends Chromosome> extends AbstractMOSA<T> {
 		// storing the time needed to reach the maximum coverage
 		ClientServices.getInstance().getClientNode().trackOutputVariable(RuntimeVariable.Time2MaxCoverage,
                 this.budgetMonitor.getTime2MaxCoverage());
+		computePerformanceMetrics(getSolutions());
 		this.notifySearchFinished();
+	}
+
+	protected void computePerformanceMetrics(List<T> tests) {
+		tests.stream().forEach(t ->
+				indicators.stream().forEach(i -> i.getIndicatorValue(t)));
 	}
 }
