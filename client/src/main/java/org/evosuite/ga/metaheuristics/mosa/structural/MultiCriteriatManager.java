@@ -74,7 +74,7 @@ public class MultiCriteriatManager<T extends Chromosome> extends StructuralGoalM
 
 	protected final Map<Integer, FitnessFunction<T>> branchCoverageTrueMap = new LinkedHashMap<Integer, FitnessFunction<T>>();
 	protected final Map<Integer, FitnessFunction<T>> branchCoverageFalseMap = new LinkedHashMap<Integer, FitnessFunction<T>>();
-	private final Map<String, FitnessFunction<T>> branchlessMethodCoverageMap = new LinkedHashMap<String, FitnessFunction<T>>();
+	protected final Map<String, FitnessFunction<T>> branchlessMethodCoverageMap = new LinkedHashMap<String, FitnessFunction<T>>();
 
 	public MultiCriteriatManager(List<FitnessFunction<T>> fitnessFunctions) {
 		super(fitnessFunctions);
@@ -396,6 +396,10 @@ public class MultiCriteriatManager<T extends Chromosome> extends StructuralGoalM
 			}	
 		}
 		currentGoals.removeAll(coveredGoals.keySet());
+		updateArchive(c, result);
+	}
+
+	public void updateArchive(T c, ExecutionResult result){
 		// 2) we update the archive
 		for (Integer branchid : result.getTrace().getCoveredFalseBranches()){
 			FitnessFunction<T> branch = this.branchCoverageFalseMap.get(branchid);
@@ -423,11 +427,11 @@ public class MultiCriteriatManager<T extends Chromosome> extends StructuralGoalM
 			// for generated exceptions
 			Set<ExceptionCoverageTestFitness> set = deriveCoveredExceptions(c);
 			for (ExceptionCoverageTestFitness exp : set){
-				// let's update the list of fitness functions 
+				// let's update the list of fitness functions
 				updateCoveredGoals((FitnessFunction<T>) exp, c);
 				// new covered exceptions (goals) have to be added to the archive
 				if (!ExceptionCoverageFactory.getGoals().containsKey(exp.getKey())){
-					// let's update the newly discovered exceptions to ExceptionCoverageFactory 
+					// let's update the newly discovered exceptions to ExceptionCoverageFactory
 					ExceptionCoverageFactory.getGoals().put(exp.getKey(), exp);
 				}
 			}
@@ -437,7 +441,7 @@ public class MultiCriteriatManager<T extends Chromosome> extends StructuralGoalM
 	/**
 	 * This method analyzes the execution results of a TestChromosome looking for generated exceptions.
 	 * Such exceptions are converted in instances of the class {@link ExceptionCoverageTestFitness},
-	 * which are additional covered goals when using as criterion {@link EXCEPTION}
+	 * which are additional covered goals when using as criterion {@link Properties.Criterion Exception}
 	 * @param t TestChromosome to analyze
 	 * @return list of exception goals being covered by t
 	 */
