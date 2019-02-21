@@ -155,6 +155,7 @@ public class StatisticsSender {
 			for (TestChromosome test : chromosomes) {
 				test.setChanged(true);
 				ExecutionResult result = TestCaseExecutor.runTest(test.getTestCase());
+				test.setLastExecutionResult(result);
 				executionTime += result.getExecutionTime();
 			}
 		}
