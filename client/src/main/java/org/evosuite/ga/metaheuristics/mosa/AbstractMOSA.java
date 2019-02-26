@@ -43,7 +43,6 @@ import org.evosuite.ga.comparators.DominanceComparator;
 import org.evosuite.ga.metaheuristics.GeneticAlgorithm;
 import org.evosuite.ga.metaheuristics.SearchListener;
 import org.evosuite.ga.operators.ranking.FastNonDominatedSorting;
-import org.evosuite.ga.operators.ranking.PerformanceBasedPreferenceSorting;
 import org.evosuite.ga.operators.ranking.RankBasedPreferenceSorting;
 import org.evosuite.ga.operators.ranking.RankingFunction;
 import org.evosuite.testcase.TestCase;
@@ -116,11 +115,7 @@ public abstract class AbstractMOSA<T extends Chromosome> extends GeneticAlgorith
 
 		// ------------------------------------------- ranking selection ------------------------------------------- //
 
-		if (Properties.P_STRATEGY == Properties.PerformanceMOSAStrategy.PREFERENCE_CRITERION &&
-				(Properties.ALGORITHM == Properties.Algorithm.PMOSA ||
-				Properties.ALGORITHM == Properties.Algorithm.PDMOSA))
-			ranking = new PerformanceBasedPreferenceSorting<>();
-		else if (Properties.RANKING_TYPE ==  Properties.RankingType.PREFERENCE_SORTING)
+		if (Properties.RANKING_TYPE ==  Properties.RankingType.PREFERENCE_SORTING)
 			ranking = new RankBasedPreferenceSorting<>();
 		else if (Properties.RANKING_TYPE ==  Properties.RankingType.FAST_NON_DOMINATED_SORTING)
 			ranking = new FastNonDominatedSorting<>();
