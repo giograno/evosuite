@@ -58,6 +58,9 @@ public class TestSuiteSecondaryObjective {
         case RHO:
           secondaryObjectiveInstance = new RhoTestSuiteSecondaryObjective();
           break;
+        case PERFORMANCE:
+          secondaryObjectiveInstance = new MinimizePerformanceSecondaryObjective();
+          break;
         default:
           throw new RuntimeException(
               "ERROR: asked for unknown secondary objective \"" + secondaryObjective.name() + "\"");
