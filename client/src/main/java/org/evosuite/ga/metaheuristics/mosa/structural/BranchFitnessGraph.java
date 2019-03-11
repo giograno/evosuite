@@ -62,14 +62,15 @@ public class BranchFitnessGraph<T extends Chromosome, V extends FitnessFunction<
 				continue;
 			}
 
+
+			ActualControlFlowGraph cfg = branch.getInstruction().getActualCFG();
 			if (branch.getInstruction().isRootBranchDependent()
-					|| branch.getInstruction().isDirectlyControlDependentOn(null))
+					|| cfg.isEntryPoint(branch.getInstruction().getBasicBlock()))
 				this.rootBranches.add(fitness); 
 
 			// see dependencies for all true/false branches
-			ActualControlFlowGraph rcfg = branch.getInstruction().getActualCFG();
 			Set<BasicBlock> visitedBlock = new HashSet<BasicBlock>();
-			Set<BasicBlock> parents = lookForParent(branch.getInstruction().getBasicBlock(), rcfg, visitedBlock);
+			Set<BasicBlock> parents = lookForParent(branch.getInstruction().getBasicBlock(), cfg, visitedBlock);
 			for (BasicBlock bb : parents){
 				Branch newB = extractBranch(bb);
 				if (newB == null){
