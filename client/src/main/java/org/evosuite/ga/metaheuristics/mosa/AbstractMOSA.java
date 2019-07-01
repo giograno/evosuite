@@ -38,7 +38,7 @@ import org.evosuite.ga.Chromosome;
 import org.evosuite.ga.ChromosomeFactory;
 import org.evosuite.ga.ConstructionFailedException;
 import org.evosuite.ga.FitnessFunction;
-import org.evosuite.ga.archive.Archive;
+import org.evosuite.ga.archive.CoverageArchive;
 import org.evosuite.ga.comparators.DominanceComparator;
 import org.evosuite.ga.metaheuristics.GeneticAlgorithm;
 import org.evosuite.ga.metaheuristics.SearchListener;
@@ -183,7 +183,7 @@ public abstract class AbstractMOSA<T extends Chromosome> extends GeneticAlgorith
 				tch.setChanged(true);
 			} else {
 				tch = (T) Randomness.choice(this.getSolutions()).clone();
-				tch.mutate(); tch.mutate(); // TODO why is it mutated twice?
+				tch.mutate();
 			}
 			if (tch.isChanged()) {
 				tch.updateAge(this.currentIteration);
@@ -366,7 +366,7 @@ public abstract class AbstractMOSA<T extends Chromosome> extends GeneticAlgorith
 	@SuppressWarnings("unchecked")
 	protected Set<FitnessFunction<T>> getCoveredGoals() {
 		Set<FitnessFunction<T>> coveredGoals = new LinkedHashSet<FitnessFunction<T>>();
-		Archive.getArchiveInstance().getCoveredTargets()
+		CoverageArchive.getArchiveInstance().getCoveredTargets()
 				.forEach(ff -> coveredGoals.add((FitnessFunction<T>) ff));
 		return coveredGoals;
 	}
@@ -377,11 +377,11 @@ public abstract class AbstractMOSA<T extends Chromosome> extends GeneticAlgorith
 	 * @return
 	 */
 	protected int getNumberOfCoveredGoals() {
-		return Archive.getArchiveInstance().getNumberOfCoveredTargets();
+		return CoverageArchive.getArchiveInstance().getNumberOfCoveredTargets();
 	}
 
 	protected void addUncoveredGoal(FitnessFunction<T> goal) {
-		Archive.getArchiveInstance().addTarget((TestFitnessFunction) goal);
+		CoverageArchive.getArchiveInstance().addTarget((TestFitnessFunction) goal);
 	}
 
 	/**
@@ -392,7 +392,7 @@ public abstract class AbstractMOSA<T extends Chromosome> extends GeneticAlgorith
 	@SuppressWarnings("unchecked")
 	protected Set<FitnessFunction<T>> getUncoveredGoals() {
 		Set<FitnessFunction<T>> uncoveredGoals = new LinkedHashSet<FitnessFunction<T>>();
-		Archive.getArchiveInstance().getUncoveredTargets()
+		CoverageArchive.getArchiveInstance().getUncoveredTargets()
 				.forEach(ff -> uncoveredGoals.add((FitnessFunction<T>) ff));
 		return uncoveredGoals;
 	}
@@ -403,7 +403,7 @@ public abstract class AbstractMOSA<T extends Chromosome> extends GeneticAlgorith
 	 * @return
 	 */
 	protected int getNumberOfUncoveredGoals() {
-		return Archive.getArchiveInstance().getNumberOfUncoveredTargets();
+		return CoverageArchive.getArchiveInstance().getNumberOfUncoveredTargets();
 	}
 
 	/**
@@ -412,7 +412,7 @@ public abstract class AbstractMOSA<T extends Chromosome> extends GeneticAlgorith
 	 * @return
 	 */
 	protected int getTotalNumberOfGoals() {
-		return Archive.getArchiveInstance().getNumberOfTargets();
+		return CoverageArchive.getArchiveInstance().getNumberOfTargets();
 	}
 
 	/**
@@ -423,7 +423,7 @@ public abstract class AbstractMOSA<T extends Chromosome> extends GeneticAlgorith
 	@SuppressWarnings("unchecked")
 	protected List<T> getSolutions() {
 		List<T> solutions = new ArrayList<T>();
-		Archive.getArchiveInstance().getSolutions().forEach(test -> solutions.add((T) test));
+		CoverageArchive.getArchiveInstance().getSolutions().forEach(test -> solutions.add((T) test));
 		return solutions;
 	}
 
@@ -435,7 +435,7 @@ public abstract class AbstractMOSA<T extends Chromosome> extends GeneticAlgorith
 	 */
 	protected TestSuiteChromosome generateSuite() {
 		TestSuiteChromosome suite = new TestSuiteChromosome();
-		Archive.getArchiveInstance().getSolutions().forEach(test -> suite.addTest(test));
+		CoverageArchive.getArchiveInstance().getSolutions().forEach(test -> suite.addTest(test));
 		return suite;
 	}
 
@@ -508,7 +508,7 @@ public abstract class AbstractMOSA<T extends Chromosome> extends GeneticAlgorith
 	@Override
 	public List<T> getBestIndividuals() {
 		// get final test suite (i.e., non dominated solutions in Archive)
-		TestSuiteChromosome bestTestCases = Archive.getArchiveInstance().mergeArchiveAndSolution(new TestSuiteChromosome());
+		TestSuiteChromosome bestTestCases = CoverageArchive.getArchiveInstance().mergeArchiveAndSolution(new TestSuiteChromosome());
 		if (bestTestCases.getTestChromosomes().isEmpty()) {
 			for (T test : this.getNonDominatedSolutions(this.population)) {
 				bestTestCases.addTest((TestChromosome) test);
@@ -565,9 +565,9 @@ public abstract class AbstractMOSA<T extends Chromosome> extends GeneticAlgorith
 			Class<?> testFitnessFunction = entry.getValue();
 
 			int numberCoveredTargets =
-					Archive.getArchiveInstance().getNumberOfCoveredTargets(testFitnessFunction);
+					CoverageArchive.getArchiveInstance().getNumberOfCoveredTargets(testFitnessFunction);
 			int numberUncoveredTargets =
-					Archive.getArchiveInstance().getNumberOfUncoveredTargets(testFitnessFunction);
+					CoverageArchive.getArchiveInstance().getNumberOfUncoveredTargets(testFitnessFunction);
 			int totalNumberTargets = numberCoveredTargets + numberUncoveredTargets;
 
 			double coverage = totalNumberTargets == 0 ? 1.0
