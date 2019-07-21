@@ -166,7 +166,7 @@ public abstract class AbstractMOSA<T extends Chromosome> extends GeneticAlgorith
 			evaluate(offspring2, offspringPopulation, this.isFinished());
 		}
 		// Add new randomly generate tests
-		for (int i = 0; i < Properties.POPULATION * Properties.P_TEST_INSERTION; i++) {
+		for (int i = 0; i < Properties.POPULATION * Properties.P_TEST_INSERTION && !isFinished(); i++) {
 			T tch = null;
 			if (this.getCoveredGoals().size() == 0 || Randomness.nextBoolean()) {
 				tch = this.chromosomeFactory.getChromosome();
