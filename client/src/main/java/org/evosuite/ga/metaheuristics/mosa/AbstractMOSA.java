@@ -48,6 +48,7 @@ import org.evosuite.ga.operators.ranking.RankingFunction;
 import org.evosuite.testcase.TestCase;
 import org.evosuite.testcase.TestChromosome;
 import org.evosuite.testcase.TestFitnessFunction;
+import org.evosuite.testcase.execution.ExecutionResult;
 import org.evosuite.testcase.secondaryobjectives.TestCaseSecondaryObjective;
 import org.evosuite.testcase.statements.ArrayStatement;
 import org.evosuite.testcase.statements.ConstructorStatement;
@@ -137,7 +138,7 @@ public abstract class AbstractMOSA<T extends Chromosome> extends GeneticAlgorith
 	protected List<T> breedNextGeneration() {
 		List<T> offspringPopulation = new ArrayList<T>(Properties.POPULATION);
 		// we apply only Properties.POPULATION/2 iterations since in each generation
-		// we generate two offsprings
+		// we generate two offspring
 		for (int i = 0; i < Properties.POPULATION / 2 && !this.isFinished(); i++) {
 			// select best individuals
 			T parent1 = this.selectionFunction.select(this.population);
@@ -157,23 +158,12 @@ public abstract class AbstractMOSA<T extends Chromosome> extends GeneticAlgorith
 			this.removeUnusedVariables(offspring1);
 			this.removeUnusedVariables(offspring2);
 
-			// apply mutation on offspring1
+			// apply mutation
 			this.mutate(offspring1, parent1);
-			if (offspring1.isChanged()) {
-				this.clearCachedResults(offspring1);
-				offspring1.updateAge(this.currentIteration);
-				this.calculateFitness(offspring1);
-				offspringPopulation.add(offspring1);
-			}
-
-			// apply mutation on offspring2
 			this.mutate(offspring2, parent2);
-			if (offspring2.isChanged()) {
-				this.clearCachedResults(offspring2);
-				offspring2.updateAge(this.currentIteration);
-				this.calculateFitness(offspring2);
-				offspringPopulation.add(offspring2);
-			}
+
+			evaluate(offspring1, offspringPopulation, this.isFinished());
+			evaluate(offspring2, offspringPopulation, this.isFinished());
 		}
 		// Add new randomly generate tests
 		for (int i = 0; i < Properties.POPULATION * Properties.P_TEST_INSERTION; i++) {
@@ -310,7 +300,7 @@ public abstract class AbstractMOSA<T extends Chromosome> extends GeneticAlgorith
 	/**
 	 * This method extracts non-dominated solutions (tests) according to all covered goal
 	 * (e.g., branches).
-	 * 
+	 *
 	 * @param solutions list of test cases to analyze with the "dominance" relationship
 	 * @return the non-dominated set of test cases
 	 */
@@ -580,4 +570,12 @@ public abstract class AbstractMOSA<T extends Chromosome> extends GeneticAlgorith
 		}
 	}
 
+	protected void evaluate(T offspring, List<T> offspringPopulation, boolean isFinished){
+		if (offspring.isChanged() && !isFinished()) {
+			this.clearCachedResults(offspring);
+			offspring.updateAge(this.currentIteration);
+			this.calculateFitness(offspring);
+			offspringPopulation.add(offspring);
+		}
+	}
 }
