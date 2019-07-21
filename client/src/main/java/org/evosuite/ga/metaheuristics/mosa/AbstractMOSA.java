@@ -249,7 +249,7 @@ public abstract class AbstractMOSA<T extends Chromosome> extends GeneticAlgorith
 	 *
 	 * @param chromosome TestChromosome to clean
 	 */
-	private void clearCachedResults(T chromosome) {
+	protected void clearCachedResults(T chromosome) {
 		((TestChromosome) chromosome).clearCachedMutationResults();
 		((TestChromosome) chromosome).clearCachedResults();
 		((TestChromosome) chromosome).clearMutationHistory();
