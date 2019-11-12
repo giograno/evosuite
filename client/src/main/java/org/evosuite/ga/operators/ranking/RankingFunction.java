@@ -34,6 +34,10 @@ public interface RankingFunction<T extends Chromosome> extends Serializable {
 	
 	public void computeRankingAssignment(List<T> solutions, Set<FitnessFunction<T>> uncovered_goals);
 
+	// ADded for NSG-II default Ranking
+	public void computeRankingAssignment(List<T> solutions);
+
+
 	/**
 	 * Returns a list of {@link org.evosuite.ga.Chromosome} objects of a given rank.
 	 * 

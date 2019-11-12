@@ -94,6 +94,11 @@ public class RankBasedPreferenceSorting<T extends Chromosome> implements Ranking
 		}
 	}
 
+	@Override
+	public void computeRankingAssignment(List<T> solutions) {
+
+	}
+
 	private List<T> getZeroFront(List<T> solutionSet, Set<FitnessFunction<T>> uncovered_goals) {
 		Set<T> zero_front = new LinkedHashSet<T>(solutionSet.size());
 		for (FitnessFunction<T> f : uncovered_goals) {

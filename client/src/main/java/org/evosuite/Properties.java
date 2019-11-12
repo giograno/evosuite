@@ -326,7 +326,8 @@ public class Properties {
 	public enum RankingType {
 		// Preference sorting is the ranking strategy proposed in
 		PREFERENCE_SORTING, 
-		FAST_NON_DOMINATED_SORTING
+		FAST_NON_DOMINATED_SORTING,
+		NSGA2_RANKING
 	}
 
 	/** Code for performance indicators **/
@@ -368,7 +369,7 @@ public class Properties {
 	public static int NUM_TEST_RUNS = 5;
 
 	@Parameter(key = "ranking_type", group = "Runtime", description = "type of ranking to use in MOSA")
-	public static RankingType RANKING_TYPE = RankingType.PREFERENCE_SORTING;
+	public static RankingType RANKING_TYPE = RankingType.NSGA2_RANKING;
 
 	@Parameter(key = "algorithm", group = "Search Algorithm", description = "Search algorithm")
 	public static Algorithm ALGORITHM = Algorithm.MONOTONIC_GA;
@@ -573,8 +574,9 @@ public class Properties {
     @Parameter(key = "lambda", group = "Search Algorithm", description = "Number of individuals produced by Mu + Lambda EA at each generation")
     public static int LAMBDA = 1;
 
+	//Hadi for ibea set it 2 to make sure we run at least once
 	@Parameter(key = "tournament_size", group = "Search Algorithm", description = "Number of individuals for tournament selection")
-	public static int TOURNAMENT_SIZE = 10;
+	public static int TOURNAMENT_SIZE = 2;
 
 	@Parameter(key = "rank_bias", group = "Search Algorithm", description = "Bias for better individuals in rank selection")
 	public static double RANK_BIAS = 1.7;
@@ -602,7 +604,8 @@ public class Properties {
 
 	@Parameter(key = "population", group = "Search Algorithm", description = "Population size of genetic algorithm")
 	@IntValue(min = 1)
-	public static int POPULATION = 50;
+	//HAdi
+	public static int POPULATION = 100;
 
 	public enum PopulationLimit {
 		INDIVIDUALS, TESTS, STATEMENTS;
