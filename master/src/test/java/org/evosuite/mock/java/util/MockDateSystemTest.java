@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (C) 2010-2018 Gordon Fraser, Andrea Arcuri and EvoSuite
  * contributors
  *
@@ -19,7 +19,6 @@
  */
 package org.evosuite.mock.java.util;
 
-import com.examples.with.different.packagename.mock.java.time.LocalDateExample;
 import com.examples.with.different.packagename.mock.java.util.DateInConstructor;
 import org.evosuite.EvoSuite;
 import org.evosuite.Properties;
@@ -42,7 +41,7 @@ public class MockDateSystemTest extends SystemTestBase {
 
         Properties.TARGET_CLASS = targetClass;
         Properties.JUNIT_TESTS = true;
-        Properties.JUNIT_CHECK = true;
+        Properties.JUNIT_CHECK = Properties.JUnitCheckValues.TRUE;
         Properties.REPLACE_CALLS = true;
         Properties.OUTPUT_VARIABLES=""+ RuntimeVariable.HadUnstableTests;
 
@@ -50,8 +49,8 @@ public class MockDateSystemTest extends SystemTestBase {
         String[] command = new String[] { "-generateSuite", "-class", targetClass };
         Object result = evosuite.parseCommandLine(command);
 
-        GeneticAlgorithm<?> ga = getGAFromResult(result);
-        TestSuiteChromosome best = (TestSuiteChromosome) ga.getBestIndividual();
+        GeneticAlgorithm<TestSuiteChromosome> ga = getGAFromResult(result);
+        TestSuiteChromosome best = ga.getBestIndividual();
 
         Assert.assertNotNull(best);
         Assert.assertEquals("Non-optimal coverage: ", 1d, best.getCoverage(), 0.001);

@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (C) 2010-2018 Gordon Fraser, Andrea Arcuri and EvoSuite
  * contributors
  *
@@ -89,7 +89,7 @@ import org.slf4j.LoggerFactory;
  */
 public class MSecurityManager extends SecurityManager {
 
-	private static Logger logger = LoggerFactory.getLogger(MSecurityManager.class);
+	private static final Logger logger = LoggerFactory.getLogger(MSecurityManager.class);
 
 
 	/*
@@ -216,8 +216,7 @@ public class MSecurityManager extends SecurityManager {
     }
 
 	public Set<Thread> getPrivilegedThreads() {
-		Set<Thread> set = new LinkedHashSet<>();
-		set.addAll(privilegedThreads);
+		Set<Thread> set = new LinkedHashSet<>(privilegedThreads);
 		return set;
 	}
 
@@ -432,12 +431,6 @@ public class MSecurityManager extends SecurityManager {
 		if (!allowPermission(perm)) {
 			String stack = "\n";
 			for (StackTraceElement e : Thread.currentThread().getStackTrace()) {
-				if (e.toString().contains(
-						//FIXME use ObjectFields.class, but without adding Maven dependency (which would create a cycle)
-						PackageInfo.getEvoSuitePackage()+".regression.ObjectFields")) {
-					statistics.permissionAllowed(perm);
-					return;
-				}
 				stack += e + "\n";
 			}
 			if (executingTestCase) {
@@ -499,6 +492,12 @@ public class MSecurityManager extends SecurityManager {
 		 */
 		if (perm instanceof RuntimePermission && 
 				"getStackTrace".equals(perm.getName().trim())) {
+			return true;
+		}
+
+		// Required in Java 11. Otherwise MSecurityManager.testCanLoadSwingStuff() fails du to the denied permission.
+		if (perm instanceof RuntimePermission &&
+				"loggerFinder".equals(perm.getName().trim())){
 			return true;
 		}
 		
@@ -789,8 +788,7 @@ public class MSecurityManager extends SecurityManager {
         String action = perm.getActions();
         String name = perm.getName();
 
-        // TODO: Relaxing this a bit due to issues with statistics handling
-        if(action.contains("resolve") && name.equals(LOCALHOST_NAME) || name.contains(InetAddress.getLoopbackAddress().toString())) {
+        if(action.contains("resolve") && (name.equals(LOCALHOST_NAME) || name.contains(InetAddress.getLoopbackAddress().toString()))) {
             /*
                 this kind of special: we do allow resolve of local host, although we do mock InetAddress.
                 This is due to all kind of indirect calls in Swing that we do not fully mock, eg like
@@ -799,6 +797,8 @@ public class MSecurityManager extends SecurityManager {
                 JComponent.getFontMetrics
                 which is triggered by the very common
                 JComponent.getPreferredSize
+
+                Furthermore there are some issues with statistics handling if this is not enabled
              */
             return true;
         }
@@ -1013,7 +1013,8 @@ public class MSecurityManager extends SecurityManager {
 				|| name.startsWith("defineClassInPackage")
 				|| name.equals("setContextClassLoader")
                 || name.equals("enableContextClassLoaderOverride")
-				|| name.equals("accessDeclaredMembers")) {
+				|| name.equals("accessDeclaredMembers")
+		        || name.equals("accessSystemModules")) {
 			return true;
 		}
 
@@ -1074,6 +1075,14 @@ public class MSecurityManager extends SecurityManager {
 			return true;
 		}
 
+                /*
+                 * Required to allow use of locale sensitive services in java.text and java.util
+                 */
+                if(name.equals("localeServiceProvider")) {
+                        return true;
+                }
+
+
 		/*
 		 * we need it for reflection
 		 */
@@ -1133,6 +1142,7 @@ public class MSecurityManager extends SecurityManager {
 					|| library.startsWith("jaybird") || library.equals("instrument")
 					|| library.startsWith("osxui") || library.contains("libawt_lwawt")
 					|| library.contains("libawt_headless") || library.contains("libawt_xawt")
+					|| library.contains("javalcms")
 					) {
 				return true;
 			}
@@ -1324,11 +1334,12 @@ public class MSecurityManager extends SecurityManager {
 						return true;
 					}
 				}
-			} else if(fp.getName().contains("gzoltar")) {
-				/*
-				 * This is not 100% secure, but GZoltar support
-				 * is also important
-				 */
+			} else if (fp.getName().contains("gzoltar") || fp.getName().equals(System.getProperty("user.dir"))) {
+				// By default, GZoltar writes the gzoltar.ser file that holds the coverage
+				// of each test case to the user.dir defined in the scaffolding test class.
+				// As user.dir might not exist, EvoSuite must grant access write access to
+				// GZoltar.
+				// Note: The following is not 100% secure, but GZoltar support is important.
 				for (StackTraceElement e : Thread.currentThread().getStackTrace()) {
 					if(e.getClassName().startsWith("com.gzoltar.")) {
 						return true;

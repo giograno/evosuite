@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (C) 2010-2018 Gordon Fraser, Andrea Arcuri and EvoSuite
  * contributors
  *
@@ -22,79 +22,60 @@ package org.evosuite.testcase;
 import org.evosuite.Properties;
 import org.evosuite.coverage.mutation.Mutation;
 import org.evosuite.coverage.mutation.MutationExecutionResult;
-import org.evosuite.ga.Chromosome;
 import org.evosuite.ga.ConstructionFailedException;
 import org.evosuite.ga.SecondaryObjective;
 import org.evosuite.ga.localsearch.LocalSearchObjective;
 import org.evosuite.ga.operators.mutation.MutationHistory;
-import org.evosuite.runtime.javaee.injection.Injector;
 import org.evosuite.runtime.util.AtMostOnceLogger;
 import org.evosuite.setup.TestCluster;
 import org.evosuite.symbolic.BranchCondition;
-import org.evosuite.symbolic.ConcolicExecution;
 import org.evosuite.symbolic.ConcolicMutation;
+import org.evosuite.symbolic.dse.ConcolicExecutorImpl;
 import org.evosuite.testcase.execution.ExecutionResult;
 import org.evosuite.testcase.localsearch.TestCaseLocalSearch;
 import org.evosuite.testcase.statements.FunctionalMockStatement;
 import org.evosuite.testcase.statements.PrimitiveStatement;
 import org.evosuite.testcase.statements.Statement;
 import org.evosuite.testcase.variable.VariableReference;
+import org.evosuite.testsuite.AbstractTestSuiteChromosome;
+import org.evosuite.testsuite.TestSuiteChromosome;
 import org.evosuite.testsuite.TestSuiteFitnessFunction;
 import org.evosuite.utils.Randomness;
-import org.evosuite.utils.generic.GenericAccessibleObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.lang.reflect.Type;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
+import java.util.function.BiConsumer;
+import java.util.function.BinaryOperator;
+import java.util.function.Function;
+import java.util.function.Supplier;
+import java.util.stream.Collector;
+import java.util.stream.IntStream;
+import java.util.stream.Stream;
+
+import static java.util.stream.Collectors.toCollection;
 
 /**
  * Chromosome representation of test cases
  *
  * @author Gordon Fraser
+ *
  */
-public class TestChromosome extends ExecutableChromosome {
+public final class TestChromosome extends AbstractTestChromosome<TestChromosome>  {
 
 	private static final long serialVersionUID = 7532366007973252782L;
 
 	private static final Logger logger = LoggerFactory.getLogger(TestChromosome.class);
 
-	/** The test case encoded in this chromosome */
-	protected TestCase test = new DefaultTestCase();
 
 	/** To keep track of what has changed since last fitness evaluation */
-	protected MutationHistory<TestMutationHistoryEntry> mutationHistory = new MutationHistory<TestMutationHistoryEntry>();
+	protected MutationHistory<TestMutationHistoryEntry> mutationHistory = new MutationHistory<>();
 
 	/** Secondary objectives used during ranking */
-	private static final List<SecondaryObjective<TestChromosome>> secondaryObjectives = new ArrayList<SecondaryObjective<TestChromosome>>();
+	private static final List<SecondaryObjective<TestChromosome>> secondaryObjectives =
+			new ArrayList<>();
 
-	/**
-	 * <p>
-	 * setTestCase
-	 * </p>
-	 *
-	 * @param testCase
-	 *            a {@link org.evosuite.testcase.TestCase} object.
-	 */
-	public void setTestCase(TestCase testCase) {
-		test = testCase;
-		clearCachedResults();
-		clearCachedMutationResults();
-		setChanged(true);
-	}
-
-	/**
-	 * <p>
-	 * getTestCase
-	 * </p>
-	 *
-	 * @return a {@link org.evosuite.testcase.TestCase} object.
-	 */
-	public TestCase getTestCase() {
-		return test;
-	}
 
 	/** {@inheritDoc} */
 	@Override
@@ -114,13 +95,18 @@ public class TestChromosome extends ExecutableChromosome {
 		}
 	}
 
+	@Override
+	public TestChromosome self() {
+		return this;
+	}
+
 	/**
 	 * {@inheritDoc}
 	 *
 	 * Create a deep copy of the chromosome
 	 */
 	@Override
-	public Chromosome clone() {
+	public TestChromosome clone() {
 		TestChromosome c = new TestChromosome();
 		c.test = test.clone();
 		c.setFitnessValues(getFitnessValues());
@@ -143,12 +129,13 @@ public class TestChromosome extends ExecutableChromosome {
 		return c;
 	}
 
+
 	/* (non-Javadoc)
 	 * @see org.evosuite.testcase.ExecutableChromosome#copyCachedResults(org.evosuite.testcase.ExecutableChromosome)
 	 */
 	/** {@inheritDoc} */
 	@Override
-	public void copyCachedResults(ExecutableChromosome other) {
+	public void copyCachedResults(TestChromosome other) {
 		if (test == null)
 			throw new RuntimeException("Test is null!");
 
@@ -166,16 +153,16 @@ public class TestChromosome extends ExecutableChromosome {
 		}
 	}
 
+
 	/**
 	 * {@inheritDoc}
 	 *
 	 * Single point cross over
 	 */
 	@Override
-	public void crossOver(Chromosome other, int position1, int position2)
+	public void crossOver(TestChromosome other, int position1, int position2)
 	        throws ConstructionFailedException {
 		logger.debug("Crossover starting");
-		TestChromosome otherChromosome = (TestChromosome)other;
 		TestChromosome offspring = new TestChromosome();
 		TestFactory testFactory = TestFactory.getInstance();
 
@@ -184,16 +171,8 @@ public class TestChromosome extends ExecutableChromosome {
 		}
 
 		for (int i = position2; i < other.size(); i++) {
-			GenericAccessibleObject<?> accessibleObject = otherChromosome.test.getStatement(i).getAccessibleObject();
-			if(accessibleObject != null) {
-				if (accessibleObject.getDeclaringClass().equals(Injector.class))
-					continue;
-				if(!ConstraintVerifier.isValidPositionForInsertion(accessibleObject, offspring.test, offspring.test.size())) {
-					continue;
-				}
-			}
 			testFactory.appendStatement(offspring.test,
-					otherChromosome.test.getStatement(i));
+					other.test.getStatement(i));
 		}
 		if (!Properties.CHECK_MAX_LENGTH
 				|| offspring.test.size() <= Properties.CHROMOSOME_LENGTH) {
@@ -201,6 +180,8 @@ public class TestChromosome extends ExecutableChromosome {
 			setChanged(true);
 		}
 	}
+
+
 
 	/**
 	 * {@inheritDoc}
@@ -217,11 +198,8 @@ public class TestChromosome extends ExecutableChromosome {
 			return false;
 		TestChromosome other = (TestChromosome) obj;
 		if (test == null) {
-			if (other.test != null)
-				return false;
-		} else if (!test.equals(other.test))
-			return false;
-		return true;
+			return other.test == null;
+		} else return test.equals(other.test);
 	}
 
 	/** {@inheritDoc} */
@@ -250,7 +228,7 @@ public class TestChromosome extends ExecutableChromosome {
 		if (lastExecutionResult != null && !isChanged()) {
 			Integer lastPos = lastExecutionResult.getFirstPositionOfThrownException();
 			if (lastPos != null)
-				lastPosition = lastPos.intValue();
+				lastPosition = lastPos;
 		}
 
 		for (TestMutationHistoryEntry mutation : mutationHistory) {
@@ -269,13 +247,9 @@ public class TestChromosome extends ExecutableChromosome {
 					continue;
 				}
 
-				int newPosition = -1;
-				for (int i = 0; i <= lastPosition; i++) {
-					if (test.getStatement(i) == mutation.getStatement()) {
-						newPosition = i;
-						break;
-					}
-				}
+				int newPosition = IntStream.rangeClosed(0, lastPosition)
+						.filter(pos -> test.getStatement(pos) == mutation.getStatement())
+						.findFirst().orElse(-1);
 
 				// Couldn't find statement, may have been deleted in other mutation?
 				assert (newPosition >= 0);
@@ -289,16 +263,17 @@ public class TestChromosome extends ExecutableChromosome {
 		return false;
 	}
 
+
 	/* (non-Javadoc)
 	 * @see org.evosuite.ga.Chromosome#localSearch()
 	 */
-	/** {@inheritDoc} */
-	@SuppressWarnings("unchecked")
+	/** {@inheritDoc}
+	 * @param objective*/
 	@Override
-	public boolean localSearch(LocalSearchObjective<? extends Chromosome> objective) {
-		TestCaseLocalSearch localSearch = TestCaseLocalSearch.selectTestCaseLocalSearch();
-		return localSearch.doSearch(this,
-		                            (LocalSearchObjective<TestChromosome>) objective);
+	public boolean localSearch(LocalSearchObjective<TestChromosome> objective) {
+		TestCaseLocalSearch<TestChromosome> localSearch =
+				TestCaseLocalSearch.selectTestCaseLocalSearch();
+		return localSearch.doSearch(this, objective);
 	}
 
 	/**
@@ -346,14 +321,8 @@ public class TestChromosome extends ExecutableChromosome {
 			setChanged(true);
 			test.clearCoveredGoals();
 		}
-		for (Statement s : test) {
-			s.isValid();
-		}
 
-		// be sure that mutation did not break any constraint.
-		// if it happens, it means a bug in EvoSuite
-		assert ConstraintVerifier.verifyTest(test);
-		assert ! ConstraintVerifier.hasAnyOnlyForAssertionMethod(test);
+		test.forEach(Statement::isValid);
 	}
 
 
@@ -406,15 +375,25 @@ public class TestChromosome extends ExecutableChromosome {
 		return changed;
 	}
 
+	/**
+	 * In the test case encoded by this chromosome, returns the position of the last statement that
+	 * can be mutated. If an exception occurred during the last execution of the test case, the
+	 * method returns the position of the last valid statement, i.e., the position of the statement
+	 * that directly precedes the exception-causing statement.
+	 *
+	 * @return the position of the last valid statement that can be mutated
+	 */
 	private int getLastMutatableStatement() {
-		ExecutionResult result = getLastExecutionResult();
+		final ExecutionResult result = getLastExecutionResult();
+		final int size = test.size();
+
 		if (result != null && !result.noThrownExceptions()) {
-			int pos = result.getFirstPositionOfThrownException();
-			// It may happen that pos > size() after statements have been deleted
-			if (pos >= test.size())
-				return test.size() - 1;
-			else
-				return pos;
+			// If an exception was thrown during execution, the test case is only valid up to the
+			// point right before where the exception occurred.
+			final int pos = result.getFirstPositionOfThrownException();
+
+			// It may happen that pos > size() after statements have been deleted.
+			return pos >= size ? size - 1 : pos;
 		} else {
 			return test.size() - 1;
 		}
@@ -445,15 +424,7 @@ public class TestChromosome extends ExecutableChromosome {
 			// Each statement is deleted with probability 1/l
 			if (Randomness.nextDouble() <= pl) {
 				changed |= deleteStatement(testFactory, num);
-
-				if(changed){
-					assert ConstraintVerifier.verifyTest(test);
-				}
 			}
-		}
-
-		if(changed){
-			assert ConstraintVerifier.verifyTest(test);
 		}
 
 		return changed;
@@ -517,11 +488,8 @@ public class TestChromosome extends ExecutableChromosome {
 						mutationHistory.addMutationEntry(new TestMutationHistoryEntry(
 						        TestMutationHistoryEntry.TestMutation.CHANGE, statement));
 						assert (test.isValid());
-						assert ConstraintVerifier.verifyTest(test);
 
-					} else if (!statement.isAssignmentStatement() &&
-							ConstraintVerifier.canDelete(test,position)) {
-						//if a statement should not be deleted, then it cannot be either replaced by another one
+					} else if (!statement.isAssignmentStatement()) {
 
 						int pos = statement.getPosition();
 						if (testFactory.changeRandomCall(test, statement)) {
@@ -529,7 +497,6 @@ public class TestChromosome extends ExecutableChromosome {
 							mutationHistory.addMutationEntry(new TestMutationHistoryEntry(
 							        TestMutationHistoryEntry.TestMutation.CHANGE,
 							        test.getStatement(pos)));
-							assert ConstraintVerifier.verifyTest(test);
 						}
 						assert (test.isValid());
 					}
@@ -538,10 +505,6 @@ public class TestChromosome extends ExecutableChromosome {
 					position = statement.getPosition(); // Might have changed due to mutation
 				}
 			}
-		}
-
-		if(changed){
-			assert ConstraintVerifier.verifyTest(test);
 		}
 
 		return changed;
@@ -587,23 +550,20 @@ public class TestChromosome extends ExecutableChromosome {
 		// concolicExecution = new ConcolicExecution();
 
 		// Apply DSE to gather constraints
-		List<BranchCondition> branches = ConcolicExecution.getSymbolicPath(this);
+		List<BranchCondition> branches = new ConcolicExecutorImpl().getSymbolicPath(this);
 		logger.debug("Conditions: " + branches);
 		if (branches.isEmpty())
 			return false;
 
 		boolean mutated = false;
-		List<BranchCondition> targetBranches = new ArrayList<BranchCondition>();
-		for (BranchCondition branch : branches) {
-			if (TestCluster.isTargetClassName(branch.getClassName()))
-				targetBranches.add(branch);
-		}
+
+		List<BranchCondition> targetBranches = branches.stream()
+				.filter(b -> TestCluster.isTargetClassName(b.getClassName()))
+				.collect(toCollection(ArrayList::new));
+
 		// Select random branch
-		BranchCondition branch = null;
-		if (targetBranches.isEmpty())
-			branch = Randomness.choice(branches);
-		else
-			branch = Randomness.choice(targetBranches);
+		List<BranchCondition> bs = targetBranches.isEmpty() ? branches : targetBranches;
+		BranchCondition branch =  Randomness.choice(bs);
 
 		logger.debug("Trying to negate branch " + branch.getInstructionIndex()
 		        + " - have " + targetBranches.size() + "/" + branches.size()
@@ -640,7 +600,7 @@ public class TestChromosome extends ExecutableChromosome {
 
 	/** {@inheritDoc} */
 	@Override
-	public int compareTo(Chromosome o) {
+	public int compareTo(TestChromosome o) {
 		int result = super.compareTo(o);
 		if (result != 0) {
 			return result;
@@ -648,10 +608,7 @@ public class TestChromosome extends ExecutableChromosome {
 		// make this deliberately not 0
 		// because then ordering of results will be random
 		// among tests of equal fitness
-		if (o instanceof TestChromosome) {
-			return test.toCode().compareTo(((TestChromosome) o).test.toCode());
-		}
-		return result;
+		return test.toCode().compareTo((o.test.toCode()));
 	}
 
 	/** {@inheritDoc} */
@@ -668,22 +625,9 @@ public class TestChromosome extends ExecutableChromosome {
 	 * @return a boolean.
 	 */
 	public boolean hasException() {
-		return lastExecutionResult == null ? false
-		        : !lastExecutionResult.noThrownExceptions();
+		return lastExecutionResult != null && !lastExecutionResult.noThrownExceptions();
 	}
 
-
-	/* (non-Javadoc)
-	 * @see org.evosuite.ga.Chromosome#applyDSE()
-	 */
-	/** {@inheritDoc} */
-	/*
-	@Override
-	public boolean applyDSE(GeneticAlgorithm<?> ga) {
-		// TODO Auto-generated method stub
-		return false;
-	}
-	*/
 
 	/** {@inheritDoc} */
 	@Override
@@ -692,18 +636,18 @@ public class TestChromosome extends ExecutableChromosome {
 		return testSuiteFitnessFunction.runTest(this.test);
 	}
 
+
 	@Override
-	@SuppressWarnings("unchecked")
-	public  <T extends Chromosome> int compareSecondaryObjective(T o) {
+	public  int compareSecondaryObjective(TestChromosome o) {
 		int objective = 0;
 		int c = 0;
 
 		while (c == 0 && objective < secondaryObjectives.size()) {
 
-			SecondaryObjective<T> so = (SecondaryObjective<T>) secondaryObjectives.get(objective++);
+			SecondaryObjective<TestChromosome> so = secondaryObjectives.get(objective++);
 			if (so == null)
 				break;
-			c = so.compareChromosomes((T) this, o);
+			c = so.compareChromosomes(this.self(), o);
 		}
 		return c;
 	}
@@ -732,7 +676,7 @@ public class TestChromosome extends ExecutableChromosome {
 	 * @param objective
 	 *            a {@link org.evosuite.ga.SecondaryObjective} object.
 	 */
-	public static void removeSecondaryObjective(SecondaryObjective<?> objective) {
+	public static void removeSecondaryObjective(SecondaryObjective<TestChromosome> objective) {
 		secondaryObjectives.remove(objective);
 	}
 
@@ -746,5 +690,47 @@ public class TestChromosome extends ExecutableChromosome {
 	public static List<SecondaryObjective<TestChromosome>> getSecondaryObjectives() {
 		return secondaryObjectives;
 	}
+
+
+	public TestSuiteChromosome toSuite(){
+		return Stream.of(this).collect(toTestSuiteCollector);
+	}
+
+	public final static TestChromosomeCollector toTestSuiteCollector = new TestChromosomeCollector();
+
+	public static class TestChromosomeCollector implements Collector<TestChromosome, TestSuiteChromosome, TestSuiteChromosome> {
+		private final static Set<Characteristics> characteristics =
+				Collections.unmodifiableSet(new HashSet<>(Arrays.asList(Characteristics.CONCURRENT, Characteristics.IDENTITY_FINISH,
+						Characteristics.UNORDERED)));
+
+		@Override
+		public Supplier<TestSuiteChromosome> supplier() {
+			return TestSuiteChromosome::new;
+		}
+
+		@Override
+		public BiConsumer<TestSuiteChromosome, TestChromosome> accumulator() {
+			return AbstractTestSuiteChromosome::addTest;
+		}
+
+		@Override
+		public BinaryOperator<TestSuiteChromosome> combiner() {
+			return (suite1, suite2) -> {
+				suite1.addTestChromosomes(suite2.getTestChromosomes());
+				return suite1;
+			};
+		}
+
+		@Override
+		public Function<TestSuiteChromosome, TestSuiteChromosome> finisher() {
+			return suite -> suite;
+		}
+
+		@Override
+		public Set<Characteristics> characteristics() {
+			return characteristics;
+		}
+	}
+
 
 }

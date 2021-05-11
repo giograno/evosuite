@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (C) 2010-2018 Gordon Fraser, Andrea Arcuri and EvoSuite
  * contributors
  *
@@ -21,28 +21,21 @@ package org.evosuite.assertion.stable;
 
 import static org.junit.Assert.assertEquals;
 
-import java.util.Map;
-
 import org.evosuite.EvoSuite;
 import org.evosuite.Properties;
 import org.evosuite.SystemTestBase;
 import org.evosuite.Properties.Criterion;
 import org.evosuite.ga.metaheuristics.GeneticAlgorithm;
-import org.evosuite.statistics.OutputVariable;
-import org.evosuite.statistics.RuntimeVariable;
-import org.evosuite.statistics.backend.DebugStatisticsBackend;
 import org.evosuite.testsuite.TestSuiteChromosome;
 import org.junit.After;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
 import com.examples.with.different.packagename.stable.RandomUUIDFromStringUser;
-import com.examples.with.different.packagename.stable.RandomUUIDUser;
 
 public class RandomUUIDFromStringSystemTest extends SystemTestBase {
 	private final boolean DEFAULT_REPLACE_CALLS = Properties.REPLACE_CALLS;
-	private final boolean DEFAULT_JUNIT_CHECK = Properties.JUNIT_CHECK;
+	private final Properties.JUnitCheckValues DEFAULT_JUNIT_CHECK = Properties.JUNIT_CHECK;
 	private final boolean DEFAULT_JUNIT_TESTS = Properties.JUNIT_TESTS;
 	private final boolean DEFAULT_PURE_INSPECTORS = Properties.PURE_INSPECTORS;
 	private final boolean DEFAULT_SANDBOX = Properties.SANDBOX;
@@ -51,7 +44,7 @@ public class RandomUUIDFromStringSystemTest extends SystemTestBase {
 	public void configureProperties() {
 		Properties.SANDBOX = true;
 		Properties.REPLACE_CALLS = true;
-		Properties.JUNIT_CHECK = true;
+		Properties.JUNIT_CHECK = Properties.JUnitCheckValues.TRUE;
 		Properties.JUNIT_TESTS = true;
 		Properties.PURE_INSPECTORS = true;
 
@@ -78,8 +71,8 @@ public class RandomUUIDFromStringSystemTest extends SystemTestBase {
 
 		Object result = evosuite.parseCommandLine(command);
 
-		GeneticAlgorithm<?> ga = getGAFromResult(result);
-		TestSuiteChromosome best = (TestSuiteChromosome) ga.getBestIndividual();
+		GeneticAlgorithm<TestSuiteChromosome> ga = getGAFromResult(result);
+		TestSuiteChromosome best = ga.getBestIndividual();
 		System.out.println("EvolvedTestSuite:\n" + best);
 
 		assertEquals("Sub optiomal coverage", 1.0d, best.getCoverage(), 0.00001);

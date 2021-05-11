@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (C) 2010-2018 Gordon Fraser, Andrea Arcuri and EvoSuite
  * contributors
  *
@@ -19,6 +19,7 @@
  */
 package org.evosuite.runtime.mock.java.lang;
 
+import org.apache.commons.lang3.SystemUtils;
 import org.evosuite.runtime.annotation.EvoSuiteExclude;
 import org.evosuite.runtime.RuntimeSettings;
 import org.evosuite.runtime.mock.MockFramework;
@@ -27,6 +28,7 @@ import org.evosuite.runtime.thread.ThreadCounter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -39,6 +41,17 @@ import java.util.concurrent.ConcurrentHashMap;
  * Created by arcuri on 9/23/14.
  */
 public class MockThread extends Thread implements OverrideMock {
+
+    static {
+        final Integer javaVersion = Integer.valueOf(SystemUtils.JAVA_VERSION.split("\\.")[0]);
+        if(javaVersion < 11){
+            try {
+                Method destroy = MockThread.class.getMethod("destroy");
+            } catch (NoSuchMethodException e) {
+                e.printStackTrace();
+            }
+        }
+    }
 
     // ----- mock internals -------
 
@@ -123,7 +136,7 @@ public class MockThread extends Thread implements OverrideMock {
         return Thread.activeCount();
     }
 
-    public static int enumerate(Thread tarray[]) {
+    public static int enumerate(Thread[] tarray) {
         return Thread.enumerate(tarray);
     }
 
@@ -274,10 +287,12 @@ public class MockThread extends Thread implements OverrideMock {
         return super.isInterrupted();
     }
 
-    @Override
+    // @Override
+    // No @Override to guarantee Java 11 compatibility
     @EvoSuiteExclude
     public void destroy() {
-        super.destroy();
+        // inlined super.destroy()
+        throw new NoSuchMethodError();
     }
 
 
@@ -315,7 +330,7 @@ public class MockThread extends Thread implements OverrideMock {
         synchronized (threadMap) {
             int identity = java.lang.System.identityHashCode(this);
             if (!threadMap.containsKey(identity)) {
-                threadMap.put(identity, Long.valueOf(threadMap.size()));
+                threadMap.put(identity, (long) threadMap.size());
             }
             return threadMap.get(identity);
         }

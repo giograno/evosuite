@@ -24,7 +24,7 @@ import java.util.*;
 public class LoopCounter extends AbstractIndicator {
 
     private static final Logger logger = LoggerFactory.getLogger(LoopCounter.class);
-    private static String INDICATOR = LoopCounter.class.getName();
+    private static final String INDICATOR = LoopCounter.class.getName();
 
     /**
      * To keep track of the branches, whose basic blocks are the beginning of loops
@@ -63,17 +63,13 @@ public class LoopCounter extends AbstractIndicator {
     }
 
     @Override
-    public double getIndicatorValue(Chromosome test) {
-        if (test instanceof TestSuiteChromosome)
-            throw new IllegalArgumentException("This indicator work at test case level");
-
+    public double getIndicatorValue(TestChromosome test) {
         // if the test has already its indicator values, we don't need to re-compute them
-        if (test.getIndicatorValues().keySet().contains(INDICATOR))
+        if (test.getIndicatorValues().containsKey(INDICATOR))
             return test.getIndicatorValue(INDICATOR);
 
         // retrieve the last execution
-        TestChromosome chromosome = (TestChromosome) test;
-        ExecutionResult result = chromosome.getLastExecutionResult();
+        ExecutionResult result = test.getLastExecutionResult();
 
         // let's initialize the counter
         double counter = 0.0;
@@ -104,7 +100,7 @@ public class LoopCounter extends AbstractIndicator {
      * child node we meet again  <code>startNode</code>. In the case such loop exists, this method return  the last node
      * in the loop (i.e., the one would lead back to the starting point <code>startNode</code>.
      *
-     * @return null if there is no loop startig with startNode;
+     * @return null if there is no loop starting with startNode;
      * otherwise it return the last block in the loop (the one just before startNode)
      */
     protected boolean hasLoop(Branch branch) {

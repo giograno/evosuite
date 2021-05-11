@@ -1,9 +1,7 @@
 package org.evosuite.ga.comparators;
 
-import org.evosuite.ga.Chromosome;
 import org.evosuite.ga.FitnessFunction;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.evosuite.testcase.TestChromosome;
 
 import java.util.Comparator;
 
@@ -14,35 +12,30 @@ import java.util.Comparator;
  *
  * @author Annibale Panichella, Giovanni Grano
  */
-public class PerformanceIndicatorComparator<T extends Chromosome> implements Comparator<Object> {
+public class PerformanceIndicatorComparator implements Comparator<TestChromosome> {
 
-    private FitnessFunction<T> objective;
-    private Comparator<T> comparator;
+    private final FitnessFunction<TestChromosome> objective;
+    private final Comparator<TestChromosome> comparator;
 
-    private static final Logger logger = LoggerFactory.getLogger(PreferenceSortingComparator.class);
-
-    public PerformanceIndicatorComparator(FitnessFunction<T> goals) {
+    public PerformanceIndicatorComparator(FitnessFunction<TestChromosome> goals) {
         this.objective = goals;
-        comparator = new PerformanceScoreComparator<>();
+        comparator = new PerformanceScoreComparator();
     }
 
     @Override
-    public int compare(Object o1, Object o2) {
+    public int compare(TestChromosome o1, TestChromosome o2) {
         if (o1 == null)
             return 1;
         else if (o2 == null)
             return -1;
 
-        T solution1 = (T) o1;
-        T solution2 = (T) o2;
-
         double val1, val2;
-        val1 = solution1.getFitness(objective);
-        val2 = solution2.getFitness(objective);
+        val1 = o1.getFitness(objective);
+        val2 = o2.getFitness(objective);
         if (val1 < val2)
             return -1;
         else if (val1 > val2)
             return +1;
-        return comparator.compare(solution1, solution2);
+        return comparator.compare(o1, o2);
     }
 }

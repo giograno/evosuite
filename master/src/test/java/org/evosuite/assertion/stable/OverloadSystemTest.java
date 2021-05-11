@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (C) 2010-2018 Gordon Fraser, Andrea Arcuri and EvoSuite
  * contributors
  *
@@ -48,7 +48,7 @@ import com.examples.with.different.packagename.stable.Overload;
 public class OverloadSystemTest extends SystemTestBase {
 
 	private final boolean DEFAULT_REPLACE_CALLS = Properties.REPLACE_CALLS;
-	private final boolean DEFAULT_JUNIT_CHECK = Properties.JUNIT_CHECK;
+	private final Properties.JUnitCheckValues DEFAULT_JUNIT_CHECK = Properties.JUNIT_CHECK;
 	private final boolean DEFAULT_JUNIT_TESTS = Properties.JUNIT_TESTS;
 	private final boolean DEFAULT_PURE_INSPECTORS = Properties.PURE_INSPECTORS;
 	private final boolean DEFAULT_JUNIT_CHECK_ON_SEPARATE_PROCESS = Properties.JUNIT_CHECK_ON_SEPARATE_PROCESS;
@@ -58,7 +58,7 @@ public class OverloadSystemTest extends SystemTestBase {
 	public void before() {
 		Properties.SANDBOX = true;
 		Properties.REPLACE_CALLS = true;
-		Properties.JUNIT_CHECK = true;
+		Properties.JUNIT_CHECK = Properties.JUnitCheckValues.TRUE;
 		Properties.JUNIT_TESTS = true;
 		Properties.PURE_INSPECTORS = true;
 		Properties.JUNIT_CHECK_ON_SEPARATE_PROCESS = false;
@@ -97,17 +97,17 @@ public class OverloadSystemTest extends SystemTestBase {
 		TestCase test = new DefaultTestCase();
 		
 		GenericConstructor gc = new GenericConstructor(Overload.class.getConstructors()[0], Overload.class);
-		ConstructorStatement cs = new ConstructorStatement(test, gc, new ArrayList<VariableReference>());
+		ConstructorStatement cs = new ConstructorStatement(test, gc, new ArrayList<>());
 		VariableReference overloadInstance = test.addStatement(cs);
 
-		ConstructorStatement ocs = new ConstructorStatement(test, new GenericConstructor(Object.class.getConstructors()[0], Object.class), new ArrayList<VariableReference>());
+		ConstructorStatement ocs = new ConstructorStatement(test, new GenericConstructor(Object.class.getConstructors()[0], Object.class), new ArrayList<>());
 		VariableReference objectInstance = test.addStatement(ocs);
 
-		List<VariableReference> vars1 = new ArrayList<VariableReference>();
+		List<VariableReference> vars1 = new ArrayList<>();
 		vars1.add(overloadInstance);
 		vars1.add(overloadInstance);
 
-		List<VariableReference> vars2 = new ArrayList<VariableReference>();
+		List<VariableReference> vars2 = new ArrayList<>();
 		vars2.add(overloadInstance);
 		vars2.add(objectInstance);
 
@@ -129,8 +129,8 @@ public class OverloadSystemTest extends SystemTestBase {
 
 		Object result = evosuite.parseCommandLine(command);
 
-		GeneticAlgorithm<?> ga = getGAFromResult(result);
-		TestSuiteChromosome best = (TestSuiteChromosome) ga.getBestIndividual();
+		GeneticAlgorithm<TestSuiteChromosome> ga = getGAFromResult(result);
+		TestSuiteChromosome best = ga.getBestIndividual();
 		System.out.println("EvolvedTestSuite:\n" + best);
 
 		Map<String, OutputVariable<?>> map = DebugStatisticsBackend.getLatestWritten();

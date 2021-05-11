@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (C) 2010-2018 Gordon Fraser, Andrea Arcuri and EvoSuite
  * contributors
  *
@@ -420,30 +420,6 @@ public class ExecutionTracer {
 	}
 
 	/**
-	 * Called by the instrumented code each time an unconditional branch is
-	 * taken. This is not enabled by default, only some coverage criteria (e.g.,
-	 * LCSAJ) use it.
-	 * 
-	 * @param opcode
-	 *            a int.
-	 * @param branch
-	 *            a int.
-	 * @param bytecode_id
-	 *            a int.
-	 */
-	public static void passedUnconditionalBranch(int opcode, int branch, int bytecode_id) {
-		ExecutionTracer tracer = getExecutionTracer();
-		if (tracer.disabled)
-			return;
-
-		if (isThreadNeqCurrentThread())
-			return;
-
-		// Add current branch to control trace
-		tracer.trace.branchPassed(branch, bytecode_id, 0.0, 0.0);
-	}
-
-	/**
 	 * Called by the instrumented code each time a new branch is taken
 	 * 
 	 * @param val
@@ -679,42 +655,16 @@ public class ExecutionTracer {
 
 		checkTimeout();
 
-		// logger.trace("Called passedBranch3 with opcode "
-		//        + AbstractVisitor.OPCODES[opcode]); // +", val1="+val1+", val2="+val2+" in branch "+branch);
 		double distance_true = 0;
 		double distance_false = 0;
 		// logger.warn("Disabling tracer: passedBranch with 2 Objects");
 
 		switch (opcode) {
 		case Opcodes.IF_ACMPEQ:
-			if (val1 == null) {
-				distance_true = val2 == null ? 0.0 : 1.0;
-			} else {
-				disable();
-				try {
-					distance_true = val1.equals(val2) ? 0.0 : 1.0;
-				} catch (Throwable t) {
-					logger.debug("Equality raised exception: " + t);
-					distance_true = 1.0;
-				} finally {
-					enable();
-				}
-			}
+			distance_true = val1 == val2 ? 0.0 : 1.0;
 			break;
 		case Opcodes.IF_ACMPNE:
-			if (val1 == null) {
-				distance_true = val2 == null ? 1.0 : 0.0;
-			} else {
-				disable();
-				try {
-					distance_true = val1.equals(val2) ? 1.0 : 0.0;
-				} catch (Exception e) {
-					logger.debug("Caught exception during comparison: " + e);
-					distance_true = 1.0;
-				} finally {
-					enable();
-				}
-			}
+			distance_true = val1 != val2 ? 0.0 : 1.0;
 			break;
 		}
 

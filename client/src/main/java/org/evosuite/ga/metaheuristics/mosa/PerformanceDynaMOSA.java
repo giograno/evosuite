@@ -1,23 +1,24 @@
 package org.evosuite.ga.metaheuristics.mosa;
 
 import org.evosuite.Properties;
-import org.evosuite.ga.Chromosome;
 import org.evosuite.ga.ChromosomeFactory;
-import org.evosuite.ga.FitnessFunction;
 import org.evosuite.ga.archive.CoverageArchive;
 import org.evosuite.ga.metaheuristics.mosa.structural.adaptive.AdaptiveGoalManager;
 import org.evosuite.ga.operators.ranking.CrowdingDistance;
 import org.evosuite.performance.strategies.PerformanceStrategy;
 import org.evosuite.performance.strategies.PerformanceStrategyFactory;
 import org.evosuite.testcase.TestChromosome;
-import org.evosuite.testcase.execution.ExecutionResult;
+import org.evosuite.testcase.TestFitnessFunction;
 import org.evosuite.testsuite.TestSuiteChromosome;
 import org.evosuite.testsuite.TestSuiteFitnessFunction;
 import org.evosuite.utils.LoggingUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -26,19 +27,19 @@ import java.util.stream.Collectors;
  * @author Giovanni Grano
  */
 @SuppressWarnings("Duplicates")
-public class PerformanceDynaMOSA<T extends Chromosome> extends DynaMOSA<T> {
+public class PerformanceDynaMOSA extends DynaMOSA {
 
     private static final Logger logger = LoggerFactory.getLogger(PerformanceDynaMOSA.class);
 
     /**
      * Manager to determine the test goals to consider at each generation
      */
-    protected AdaptiveGoalManager<T> goalsManager = null;
+    protected AdaptiveGoalManager goalsManager = null;
 
-    protected CrowdingDistance<T> distance = new CrowdingDistance<T>();
+    protected CrowdingDistance<TestChromosome> distance = new CrowdingDistance<>();
 
     /* -------------------------------------- performance instance variables -------------------------------------- */
-    private PerformanceStrategy<T> strategy;
+    private final PerformanceStrategy strategy;
 
     private enum Heuristics {CROWDING, PERFORMANCE}
 
@@ -54,7 +55,7 @@ public class PerformanceDynaMOSA<T extends Chromosome> extends DynaMOSA<T> {
      *
      * @param factory
      */
-    public PerformanceDynaMOSA(ChromosomeFactory<T> factory) {
+    public PerformanceDynaMOSA(ChromosomeFactory<TestChromosome> factory) {
         super(factory);
 
         /* --------------------------------- instantiate performance variables --------------------------------- */
@@ -73,11 +74,11 @@ public class PerformanceDynaMOSA<T extends Chromosome> extends DynaMOSA<T> {
     @Override
     @SuppressWarnings("Duplicates")
     protected void evolve() {
-        List<T> offspringPopulation = this.breedNextGeneration();
+        List<TestChromosome> offspringPopulation = this.breedNextGeneration();
 
-        for (int i=offspringPopulation.size()-1; i>=0; i--){
-            T off = offspringPopulation.get(i);
-            if (off.getPerformanceScore() == Double.MAX_VALUE){
+        for (int i = offspringPopulation.size() - 1; i >= 0; i--) {
+            TestChromosome off = offspringPopulation.get(i);
+            if (off.getPerformanceScore() == Double.MAX_VALUE) {
                 offspringPopulation.remove(i);
             }
         }
@@ -89,7 +90,7 @@ public class PerformanceDynaMOSA<T extends Chromosome> extends DynaMOSA<T> {
         /* --------------------------------- select heuristic --------------------------------- */
 
         // Create the union of parents and offSpring
-        List<T> union = new ArrayList<>(this.population.size() + offspringPopulation.size());
+        List<TestChromosome> union = new ArrayList<>(this.population.size() + offspringPopulation.size());
         union.addAll(this.population);
         union.addAll(offspringPopulation);
 
@@ -97,17 +98,17 @@ public class PerformanceDynaMOSA<T extends Chromosome> extends DynaMOSA<T> {
         logger.debug("Union Size = {}", union.size());
 
         // Ranking the union using the best rank algorithm (modified version of the non dominated sorting algorithm)
-        ranking.computeRankingAssignment(union, this.goalsManager.getCurrentGoals());
+        this.rankingFunction.computeRankingAssignment(union, this.goalsManager.getCurrentGoals());
 
         // let's form the next population using "preference sorting and non-dominated sorting" on the
         // updated set of goals
-        int remain = Math.max(Properties.POPULATION, this.ranking.getSubfront(0).size());
+        int remain = Math.max(Properties.POPULATION, this.rankingFunction.getSubfront(0).size());
         int index = 0;
-        List<T> front;
+        List<TestChromosome> front;
         this.population.clear();
 
         // Obtain the next front
-        front = ranking.getSubfront(index);
+        front = this.rankingFunction.getSubfront(index);
 
         while ((remain > 0) && (remain >= front.size()) && !front.isEmpty()) {
 
@@ -124,7 +125,7 @@ public class PerformanceDynaMOSA<T extends Chromosome> extends DynaMOSA<T> {
             // Obtain the next front
             index++;
             if (remain > 0)
-                front = ranking.getSubfront(index);
+                front = this.rankingFunction.getSubfront(index);
 
         }
 
@@ -156,7 +157,7 @@ public class PerformanceDynaMOSA<T extends Chromosome> extends DynaMOSA<T> {
     public void generateSolution() {
         logger.debug("executing generateSolution function");
 
-        this.goalsManager = new AdaptiveGoalManager<>(this.fitnessFunctions);
+        this.goalsManager = new AdaptiveGoalManager(this.fitnessFunctions);
         this.goalsManager.setIndicators(this.indicators);
 
         LoggingUtils.getEvoLogger().info("* Initial Number of Goals in PerformanceDynaMOSA = " +
@@ -173,15 +174,15 @@ public class PerformanceDynaMOSA<T extends Chromosome> extends DynaMOSA<T> {
         this.calculateFitness();
 
         // Calculate dominance ranks and crowding distance
-        this.ranking.computeRankingAssignment(this.population, this.goalsManager.getCurrentGoals());
+        this.rankingFunction.computeRankingAssignment(this.population, this.goalsManager.getCurrentGoals());
 
-        for (int i = 0; i < this.ranking.getNumberOfSubfronts(); i++) {
-            distance.fastEpsilonDominanceAssignment(ranking.getSubfront(i), goalsManager.getCurrentGoals());
+        for (int i = 0; i < this.rankingFunction.getNumberOfSubfronts(); i++) {
+            distance.fastEpsilonDominanceAssignment(this.rankingFunction.getSubfront(i), goalsManager.getCurrentGoals());
         }
 
         // update best values
-        for (T t : population)
-            for (FitnessFunction<T> f : goalsManager.getUncoveredGoals())
+        for (TestChromosome t : population)
+            for (TestFitnessFunction f : goalsManager.getUncoveredGoals())
                 goalsManager.updateBestValue(f, t.getFitness(f));
         last_heuristic = Heuristics.PERFORMANCE;
 
@@ -192,35 +193,36 @@ public class PerformanceDynaMOSA<T extends Chromosome> extends DynaMOSA<T> {
         }
 
         /* -------------------------- calculate the performance indicators to save them ---------------------------*/
-        Set<T> archive = goalsManager.getArchive();
-        computePerformanceMetrics(archive);
-        printPerformanceMetrics(archive);
+        // todo-gio: handle this
+//        Set<TestChromosome> archive = goalsManager.getArchive();
+//        computePerformanceMetrics(archive);
+//        printPerformanceMetrics(archive);
 
         this.notifySearchFinished();
     }
 
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    protected Set<FitnessFunction<T>> getCoveredGoals() {
-        return this.goalsManager.getCoveredGoals().keySet();
-    }
+//    /**
+//     * {@inheritDoc}
+//     */
+//    @Override
+//    protected Set<FitnessFunction<T>> getCoveredGoals() {
+//        return this.goalsManager.getCoveredGoals().keySet();
+//    }
 
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    protected int getNumberOfCoveredGoals() {
-        return this.getCoveredGoals().size();
-    }
+//    /**
+//     * {@inheritDoc}
+//     */
+//    @Override
+//    protected int getNumberOfCoveredGoals() {
+//        return this.getCoveredGoals().size();
+//    }
 
-    /**
-     * {@inheritDoc}
-     */
-    protected Set<FitnessFunction<T>> getUncoveredGoals() {
-        return this.goalsManager.getUncoveredGoals();
-    }
+//    /**
+//     * {@inheritDoc}
+//     */
+//    protected Set<FitnessFunction<T>> getUncoveredGoals() {
+//        return this.goalsManager.getUncoveredGoals();
+//    }
 
     /**
      * {@inheritDoc}
@@ -238,117 +240,118 @@ public class PerformanceDynaMOSA<T extends Chromosome> extends DynaMOSA<T> {
         return this.getNumberOfCoveredGoals() + this.getNumberOfUncoveredGoals();
     }
 
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    protected List<T> getSolutions() {
-        List<T> solutions = new ArrayList<T>();
-        CoverageArchive.getArchiveInstance().getSolutions().forEach(test -> solutions.add((T) test));
-        return solutions;
-    }
+//    /**
+//     * {@inheritDoc}
+//     */
+//    @Override
+//    protected List<T> getSolutions() {
+//        List<T> solutions = new ArrayList<T>();
+//        CoverageArchive.getArchiveInstance().getSolutions().forEach(test -> solutions.add((T) test));
+//        return solutions;
+//    }
 
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    protected TestSuiteChromosome generateSuite() {
-        TestSuiteChromosome suite = new TestSuiteChromosome();
-        for (T t : this.getSolutions()) {
-            TestChromosome test = (TestChromosome) t;
-            suite.addTest(test);
-        }
-        return suite;
-    }
+//    /**
+//     * {@inheritDoc}
+//     */
+//    @Override
+//    protected TestSuiteChromosome generateSuite() {
+//        TestSuiteChromosome suite = new TestSuiteChromosome();
+//        for (T t : this.getSolutions()) {
+//            TestChromosome test = (TestChromosome) t;
+//            suite.addTest(test);
+//        }
+//        return suite;
+//    }
 
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    protected void calculateFitness(T c) {
-        this.goalsManager.calculateFitness(c);
-        this.notifyEvaluation(c);
-    }
+//    /**
+//     * {@inheritDoc}
+//     * //todo-gio
+//     */
+//    @Override
+//    protected void calculateFitness(TestChromosome c) {
+//        this.goalsManager.calculateFitness(c);
+//        this.notifyEvaluation(c);
+//        // can we call the super? (todo)
+////        super.calculateFitness(c);
+//    }
 
-    /**
-     * {@inheritDoc}
-     */
-    @SuppressWarnings("unchecked")
-    @Override
-    public List<T> getBestIndividuals() {
-        TestSuiteChromosome bestTestCases = this.generateSuite();
+//    /**
+//     * {@inheritDoc}
+//     */
+//    @SuppressWarnings("unchecked")
+//    @Override
+//    public List<T> getBestIndividuals() {
+//        TestSuiteChromosome bestTestCases = this.generateSuite();
+//
+//        if (bestTestCases.getTestChromosomes().isEmpty()) {
+//            // trivial case where there are no branches to cover or the archive is empty
+//            for (T test : this.population) {
+//                bestTestCases.addTest((TestChromosome) test);
+//            }
+//        }
+//
+//        // compute overall fitness and coverage
+//        this.computeCoverageAndFitness(bestTestCases);
+//
+//        List<T> bests = new ArrayList<T>(1);
+//        bests.add((T) bestTestCases);
+//
+//        return bests;
+//    }
 
-        if (bestTestCases.getTestChromosomes().isEmpty()) {
-            // trivial case where there are no branches to cover or the archive is empty
-            for (T test : this.population) {
-                bestTestCases.addTest((TestChromosome) test);
-            }
-        }
+//    /**
+//     * {@inheritDoc}
+//     */
+//    @SuppressWarnings("unchecked")
+//    @Override
+//    public T getBestIndividual() {
+//        TestSuiteChromosome best = this.generateSuite();
+//        if (best.getTestChromosomes().isEmpty()) {
+//            for (T test : this.population) {
+//                best.addTest((TestChromosome) test);
+//            }
+//            for (TestSuiteFitnessFunction suiteFitness : this.suiteFitnessFunctions.keySet()) {
+//                best.setCoverage(suiteFitness, 0.0);
+//                best.setFitness(suiteFitness, 1.0);
+//            }
+//            return (T) best;
+//        }
+//
+//        // compute overall fitness and coverage
+//        this.computeCoverageAndFitness(best);
+//        return (T) best;
+//    }
 
-        // compute overall fitness and coverage
-        this.computeCoverageAndFitness(bestTestCases);
+//    /**
+//     * {@inheritDoc}
+//     */
+//    @Override
+//    protected void computeCoverageAndFitness(TestSuiteChromosome suite) {
+//
+//        for (Map.Entry<TestSuiteFitnessFunction, Class<?>> entry : this.suiteFitnessFunctions.entrySet()) {
+//            TestSuiteFitnessFunction suiteFitnessFunction = entry.getKey();
+//            Class<?> testFitnessFunction = entry.getValue();
+//
+//            int numberCoveredTargets = this.goalsManager.getNumberOfCoveredTargets(testFitnessFunction);
+//            int numberUncoveredTargets = this.goalsManager.getNumberOfUncoveredTargets(testFitnessFunction);
+//            int totalNumberTargets = numberCoveredTargets + numberUncoveredTargets;
+//
+//            double coverage = totalNumberTargets == 0 ? 0.0
+//                    : ((double) numberCoveredTargets)
+//                    / ((double) (numberCoveredTargets + numberUncoveredTargets));
+//
+//            suite.setFitness(suiteFitnessFunction, numberUncoveredTargets);
+//            suite.setCoverage(suiteFitnessFunction, coverage);
+//            suite.setNumOfCoveredGoals(suiteFitnessFunction, numberCoveredTargets);
+//            suite.setNumOfNotCoveredGoals(suiteFitnessFunction, numberUncoveredTargets);
+//        }
+//    }
 
-        List<T> bests = new ArrayList<T>(1);
-        bests.add((T) bestTestCases);
-
-        return bests;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @SuppressWarnings("unchecked")
-    @Override
-    public T getBestIndividual() {
-        TestSuiteChromosome best = this.generateSuite();
-        if (best.getTestChromosomes().isEmpty()) {
-            for (T test : this.population) {
-                best.addTest((TestChromosome) test);
-            }
-            for (TestSuiteFitnessFunction suiteFitness : this.suiteFitnessFunctions.keySet()) {
-                best.setCoverage(suiteFitness, 0.0);
-                best.setFitness(suiteFitness, 1.0);
-            }
-            return (T) best;
-        }
-
-        // compute overall fitness and coverage
-        this.computeCoverageAndFitness(best);
-        return (T) best;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    protected void computeCoverageAndFitness(TestSuiteChromosome suite) {
-
-        for (Map.Entry<TestSuiteFitnessFunction, Class<?>> entry : this.suiteFitnessFunctions.entrySet()) {
-            TestSuiteFitnessFunction suiteFitnessFunction = entry.getKey();
-            Class<?> testFitnessFunction = entry.getValue();
-
-            int numberCoveredTargets = this.goalsManager.getNumberOfCoveredTargets(testFitnessFunction);
-            int numberUncoveredTargets = this.goalsManager.getNumberOfUncoveredTargets(testFitnessFunction);
-            int totalNumberTargets = numberCoveredTargets + numberUncoveredTargets;
-
-            double coverage = totalNumberTargets == 0 ? 0.0
-                    : ((double) numberCoveredTargets)
-                    / ((double) (numberCoveredTargets + numberUncoveredTargets));
-
-            suite.setFitness(suiteFitnessFunction, ((double) numberUncoveredTargets));
-            suite.setCoverage(suiteFitnessFunction, coverage);
-            suite.setNumOfCoveredGoals(suiteFitnessFunction, numberCoveredTargets);
-            suite.setNumOfNotCoveredGoals(suiteFitnessFunction, numberUncoveredTargets);
-        }
-    }
-
-    /**
+    /*
      * Checks for the stagnation and eventually changes the heuristic
-     *
-     * @return
      */
     private Heuristics checkStagnation() {
-        Heuristics choice = null;
+        Heuristics choice;
 
         if (!goalsManager.hasBetterObjectives()) {
             goalsManager.setHasBetterObjectives(false);
@@ -357,7 +360,7 @@ public class PerformanceDynaMOSA<T extends Chromosome> extends DynaMOSA<T> {
             else
                 performanceStagnation++;
 
-            if (performanceStagnation > crowdingStagnation+1)
+            if (performanceStagnation > crowdingStagnation + 1)
                 choice = Heuristics.CROWDING;
             else if (performanceStagnation <= crowdingStagnation)
                 choice = Heuristics.PERFORMANCE;
@@ -373,45 +376,26 @@ public class PerformanceDynaMOSA<T extends Chromosome> extends DynaMOSA<T> {
 
             choice = last_heuristic;
         }
-        //logger.error("crowdingStagnation = {}", crowdingStagnation);
-        //logger.error("performanceStagnation = {}", performanceStagnation);
+
+        // logger.error("crowdingStagnation = {}", crowdingStagnation);
+        // logger.error("performanceStagnation = {}", performanceStagnation);
         return choice;
     }
 
-    protected void applySecondaryCriterion(List<T> front) {
+    /**
+     * Application of the secondary criterion depending on the heuristic to use for this generation
+     * todo (check this)
+     */
+    protected void applySecondaryCriterion(List<TestChromosome> front) {
         if (last_heuristic == Heuristics.CROWDING) {
             distance.fastEpsilonDominanceAssignment(front, goalsManager.getCurrentGoals());
         } else if (last_heuristic == Heuristics.PERFORMANCE) {
-            for (T t : front){
+            for (TestChromosome t : front)
                 this.goalsManager.computePerformanceMetrics(t);
-            }
             strategy.setDistances(front);
         } else {
-            for (T t : front)
+            for (TestChromosome t : front)
                 t.setDistance(0);
         }
-    }
-    
-    @Override
-    protected void evaluate(T offspring, List<T> offspringPopulation, boolean isFinished){
-        if (offspring.isChanged() && !isFinished()) {
-            this.clearCachedResults(offspring);
-            offspring.updateAge(this.currentIteration);
-            this.calculateFitness(offspring);
-            if (shouldAdd(offspring))
-                offspringPopulation.add(offspring);
-        }
-    }
-
-    protected boolean shouldAdd(T test){
-        ExecutionResult results = ((TestChromosome) test).getLastExecutionResult();
-        if (results.hasTimeout() ||
-                results.hasTestException() ||
-                results.getTrace().getCoveredLines().size()==0) {
-            logger.debug("Test not added to the population");
-            return false;
-        }
-
-        return true;
     }
 }

@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (C) 2010-2018 Gordon Fraser, Andrea Arcuri and EvoSuite
  * contributors
  *
@@ -19,19 +19,9 @@
  */
 package org.evosuite.ga.metaheuristics.mosa;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Set;
-import java.util.concurrent.ConcurrentLinkedQueue;
-
 import org.evosuite.ClientProcess;
 import org.evosuite.Properties;
-import org.evosuite.ga.Chromosome;
 import org.evosuite.ga.ChromosomeFactory;
-import org.evosuite.ga.FitnessFunction;
 import org.evosuite.ga.comparators.OnlyCrowdingComparator;
 import org.evosuite.ga.operators.ranking.CrowdingDistance;
 import org.evosuite.ga.operators.selection.BestKSelection;
@@ -41,10 +31,16 @@ import org.evosuite.ga.operators.selection.SelectionFunction;
 import org.evosuite.performance.AbstractIndicator;
 import org.evosuite.performance.indicator.IndicatorsFactory;
 import org.evosuite.rmi.ClientServices;
+import org.evosuite.rmi.service.ClientNodeLocal;
 import org.evosuite.statistics.RuntimeVariable;
+import org.evosuite.testcase.TestChromosome;
+import org.evosuite.testcase.TestFitnessFunction;
 import org.evosuite.utils.Listener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.*;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 /**
  * Implementation of the Many-Objective Sorting Algorithm (MOSA) described in the
@@ -52,19 +48,20 @@ import org.slf4j.LoggerFactory;
  *
  * @author Annibale Panichella, Fitsum M. Kifetew
  */
-public class MOSA<T extends Chromosome> extends AbstractMOSA<T> {
+public class MOSA extends AbstractMOSA {
 
 	private static final long serialVersionUID = 146182080947267628L;
 
 	private static final Logger logger = LoggerFactory.getLogger(MOSA.class);
 
 	/** immigrant groups from neighbouring client */
-	private ConcurrentLinkedQueue<List<T>> immigrants = new ConcurrentLinkedQueue<>();
+	private final ConcurrentLinkedQueue<List<TestChromosome>> immigrants =
+			new ConcurrentLinkedQueue<>();
 
-	private SelectionFunction<T> emigrantsSelection;
+	private final SelectionFunction<TestChromosome> emigrantsSelection;
 
 	/** Crowding distance measure to use */
-	protected CrowdingDistance<T> distance = new CrowdingDistance<>();
+	protected CrowdingDistance<TestChromosome> distance = new CrowdingDistance<>();
 
 	protected List<AbstractIndicator> indicators;
 
@@ -72,7 +69,7 @@ public class MOSA<T extends Chromosome> extends AbstractMOSA<T> {
 	 * Constructor based on the abstract class {@link AbstractMOSA}
 	 * @param factory
 	 */
-	public MOSA(ChromosomeFactory<T> factory) {
+	public MOSA(ChromosomeFactory<TestChromosome> factory) {
 		super(factory);
 		indicators = IndicatorsFactory.getPerformanceIndicator();
 		switch (Properties.EMIGRANT_SELECTION_FUNCTION) {
@@ -92,10 +89,10 @@ public class MOSA<T extends Chromosome> extends AbstractMOSA<T> {
 	 */
 	@Override
 	protected void evolve() {
-		List<T> offspringPopulation = this.breedNextGeneration();
+		List<TestChromosome> offspringPopulation = this.breedNextGeneration();
 
 		// Create the union of parents and offSpring
-		List<T> union = new ArrayList<T>();
+		List<TestChromosome> union = new ArrayList<>();
 		union.addAll(this.population);
 		union.addAll(offspringPopulation);
 
@@ -104,26 +101,26 @@ public class MOSA<T extends Chromosome> extends AbstractMOSA<T> {
 			union.addAll(immigrants.poll());
 		}
 
-		Set<FitnessFunction<T>> uncoveredGoals = this.getUncoveredGoals();
+		Set<TestFitnessFunction> uncoveredGoals = this.getUncoveredGoals();
 
 		// Ranking the union
 		logger.debug("Union Size =" + union.size());
 		// Ranking the union using the best rank algorithm (modified version of the non dominated sorting algorithm)
-		this.ranking.computeRankingAssignment(union, uncoveredGoals);
+		this.rankingFunction.computeRankingAssignment(union, uncoveredGoals);
 
 		int remain = this.population.size();
 		int index = 0;
-		List<T> front = null;
+		List<TestChromosome> front = null;
 		this.population.clear();
 
 		// Obtain the next front
-		front = this.ranking.getSubfront(index);
+		front = this.rankingFunction.getSubfront(index);
 
 		while ((remain > 0) && (remain >= front.size()) && !front.isEmpty()) {
 			// Assign crowding distance to individuals
-			distance.fastEpsilonDominanceAssignment(front, uncoveredGoals);
+			this.distance.fastEpsilonDominanceAssignment(front, uncoveredGoals);
 			// Add the individuals of this front
-			population.addAll(front);
+			this.population.addAll(front);
 
 			// Decrement remain
 			remain = remain - front.size();
@@ -131,16 +128,16 @@ public class MOSA<T extends Chromosome> extends AbstractMOSA<T> {
 			// Obtain the next front
 			index++;
 			if (remain > 0) {
-				front = ranking.getSubfront(index);
+				front = this.rankingFunction.getSubfront(index);
 			}
 		}
 
 		// Remain is less than front(index).size, insert only the best one
 		if (remain > 0 && !front.isEmpty()) { // front contains individuals to insert
-			distance.fastEpsilonDominanceAssignment(front, uncoveredGoals);
-			Collections.sort(front, new OnlyCrowdingComparator());
+			this.distance.fastEpsilonDominanceAssignment(front, uncoveredGoals);
+			front.sort(new OnlyCrowdingComparator<>());
 			for (int k = 0; k < remain; k++) {
-				population.add(front.get(k));
+				this.population.add(front.get(k));
 			}
 
 			remain = 0;
@@ -149,8 +146,9 @@ public class MOSA<T extends Chromosome> extends AbstractMOSA<T> {
 		// for parallel runs: collect best k individuals for migration
 		if (Properties.NUM_PARALLEL_CLIENTS > 1 && Properties.MIGRANTS_ITERATION_FREQUENCY > 0) {
 			if ((currentIteration + 1) % Properties.MIGRANTS_ITERATION_FREQUENCY == 0 && !this.population.isEmpty()) {
-				HashSet<T> emigrants = new HashSet<>(emigrantsSelection.select(population, Properties.MIGRANTS_COMMUNICATION_RATE));
-				ClientServices.getInstance().getClientNode().emigrate(emigrants);
+				HashSet<TestChromosome> emigrants = new HashSet<>(emigrantsSelection.select(this.population,
+						Properties.MIGRANTS_COMMUNICATION_RATE));
+				ClientServices.<TestChromosome>getInstance().getClientNode().emigrate(emigrants);
 			}
 		}
 
@@ -173,20 +171,18 @@ public class MOSA<T extends Chromosome> extends AbstractMOSA<T> {
 		}
 
 		// Calculate dominance ranks and crowding distance
-		ranking.computeRankingAssignment(this.population, this.getUncoveredGoals());
-		for (int i = 0; i < this.ranking.getNumberOfSubfronts(); i++) {
-			this.distance.fastEpsilonDominanceAssignment(ranking.getSubfront(i), this.getUncoveredGoals());
+		this.rankingFunction.computeRankingAssignment(this.population, this.getUncoveredGoals());
+		for (int i = 0; i < this.rankingFunction.getNumberOfSubfronts(); i++) {
+			this.distance.fastEpsilonDominanceAssignment(this.rankingFunction.getSubfront(i), this.getUncoveredGoals());
 		}
 
-		Listener<Set<? extends Chromosome>> listener = null;
+		final ClientNodeLocal<TestChromosome> clientNode =
+				ClientServices.<TestChromosome>getInstance().getClientNode();
+
+		Listener<Set<TestChromosome>> listener = null;
 		if (Properties.NUM_PARALLEL_CLIENTS > 1) {
-			listener = new Listener<Set<? extends Chromosome>>() {
-				@Override
-				public void receiveEvent(Set<? extends Chromosome> event) {
-					immigrants.add(new LinkedList<T>((Set<? extends T>) event));
-				}
-			};
-			ClientServices.getInstance().getClientNode().addListener(listener);
+			listener = event -> immigrants.add(new LinkedList<>(event));
+			clientNode.addListener(listener);
 		}
 
 		// TODO add here dynamic stopping condition
@@ -196,36 +192,36 @@ public class MOSA<T extends Chromosome> extends AbstractMOSA<T> {
 		}
 
 		if (Properties.NUM_PARALLEL_CLIENTS > 1) {
-			ClientServices.getInstance().getClientNode().deleteListener(listener);
+			clientNode.deleteListener(listener);
 
 			if (ClientProcess.DEFAULT_CLIENT_NAME.equals(ClientProcess.getIdentifier())) {
 				//collect all end result test cases
-				Set<Set<? extends Chromosome>> collectedSolutions = ClientServices.getInstance()
-					.getClientNode().getBestSolutions();
+				Set<Set<TestChromosome>> collectedSolutions = clientNode.getBestSolutions();
 
 				logger.debug(ClientProcess.DEFAULT_CLIENT_NAME + ": Received " + collectedSolutions.size() + " solution sets");
-				for (Set<? extends Chromosome> solution : collectedSolutions) {
-					for (Chromosome t : solution) {
-						this.calculateFitness((T) t);
+				for (Set<TestChromosome> solution : collectedSolutions) {
+					for (TestChromosome t : solution) {
+						this.calculateFitness(t);
 					}
 				}
 			} else {
 				//send end result test cases to Client-0
-				Set<T> solutionsSet = new HashSet<T>(getSolutions());
+				Set<TestChromosome> solutionsSet = new HashSet<>(getSolutions());
 				logger.debug(ClientProcess.getPrettyPrintIdentifier() + "Sending " + solutionsSet.size()
-											+ " solutions to " + ClientProcess.DEFAULT_CLIENT_NAME);
-				ClientServices.getInstance().getClientNode().sendBestSolution(solutionsSet);
+						+ " solutions to " + ClientProcess.DEFAULT_CLIENT_NAME);
+				clientNode.sendBestSolution(solutionsSet);
 			}
 		}
 
 		// storing the time needed to reach the maximum coverage
-		ClientServices.getInstance().getClientNode().trackOutputVariable(RuntimeVariable.Time2MaxCoverage,
-                this.budgetMonitor.getTime2MaxCoverage());
+		clientNode.trackOutputVariable(RuntimeVariable.Time2MaxCoverage,
+				this.budgetMonitor.getTime2MaxCoverage());
+//		(todo) check this compute performance metrics
 		computePerformanceMetrics(getSolutions());
 		this.notifySearchFinished();
 	}
 
-	protected void computePerformanceMetrics(List<T> tests) {
+	protected void computePerformanceMetrics(List<TestChromosome> tests) {
 		tests.stream().forEach(t ->
 				indicators.stream().forEach(i -> i.getIndicatorValue(t)));
 	}

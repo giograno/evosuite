@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (C) 2010-2018 Gordon Fraser, Andrea Arcuri and EvoSuite
  * contributors
  *
@@ -23,8 +23,6 @@ import org.evosuite.EvoSuite;
 import org.evosuite.Properties;
 import org.evosuite.SystemTestBase;
 import org.evosuite.ga.metaheuristics.GeneticAlgorithm;
-import org.evosuite.junit.writer.TestSuiteWriter;
-import org.evosuite.testcase.execution.TestCaseExecutor;
 import org.evosuite.testsuite.TestSuiteChromosome;
 import org.junit.After;
 import org.junit.Assert;
@@ -35,7 +33,6 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
-import java.util.Collections;
 
 import static org.junit.Assert.assertFalse;
 
@@ -62,8 +59,8 @@ public class ClassWithProtectedConstructorSystemTest extends SystemTestBase {
 		String[] command = new String[] { "-generateSuite", "-class", targetClass };
 
 		Object result = evosuite.parseCommandLine(command);
-		GeneticAlgorithm<?> ga = getGAFromResult(result);
-		TestSuiteChromosome best = (TestSuiteChromosome) ga.getBestIndividual();
+		GeneticAlgorithm<TestSuiteChromosome> ga = getGAFromResult(result);
+		TestSuiteChromosome best = ga.getBestIndividual();
 
 		String name = targetClass.substring(targetClass.lastIndexOf(".") + 1) + Properties.JUNIT_SUFFIX;
 
@@ -73,7 +70,7 @@ public class ClassWithProtectedConstructorSystemTest extends SystemTestBase {
 				name + ".java";
 		Path path = Paths.get(junitFile);
 		Assert.assertTrue("Test Suite does not exist: "+path, Files.exists(path));
-		System.out.println(path.toString());
+		System.out.println(path);
 
 		String testCode = new String(Files.readAllBytes(path));
 		Files.delete(path);

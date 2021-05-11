@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (C) 2010-2018 Gordon Fraser, Andrea Arcuri and EvoSuite
  * contributors
  *
@@ -24,6 +24,10 @@ import org.evosuite.ga.archive.Archive;
 import org.evosuite.testcase.*;
 import org.evosuite.testcase.execution.ExecutionResult;
 import org.evosuite.utils.generic.GenericClass;
+import org.evosuite.utils.generic.GenericClassFactory;
+import org.evosuite.utils.generic.GenericClassImpl;
+
+import java.util.Objects;
 
 
 /**
@@ -54,7 +58,7 @@ public class ExceptionCoverageTestFitness extends TestFitnessFunction {
     /**
      * The class representing the thrown exception, eg NPE an IAE
      */
-    protected final GenericClass exceptionClass;
+    protected final GenericClass<?> exceptionClass;
 
     protected final ExceptionType type;
 
@@ -62,16 +66,15 @@ public class ExceptionCoverageTestFitness extends TestFitnessFunction {
      * Constructor - fitness is specific to a method
      * @param methodIdentifier the method name
      * @param exceptionClass the exception class
-     * @throws IllegalArgumentException
      */
-    public ExceptionCoverageTestFitness(String className, String methodIdentifier, Class<?> exceptionClass, ExceptionType type) throws IllegalArgumentException{
-        if ((methodIdentifier == null) || (exceptionClass == null) || type==null) {
-            throw new IllegalArgumentException("method name and exception class and type cannot be null");
-        }
+    public ExceptionCoverageTestFitness(String className, String methodIdentifier, Class<?> exceptionClass, ExceptionType type) {
         this.className = className;
-        this.exceptionClass = new GenericClass(exceptionClass);
-        this.methodIdentifier = methodIdentifier;
-        this.type = type;
+
+        Objects.requireNonNull(exceptionClass, "exception class cannot be null");
+        this.exceptionClass = GenericClassFactory.get(exceptionClass);
+
+        this.methodIdentifier = Objects.requireNonNull(methodIdentifier, "method name cannot be null");
+        this.type = Objects.requireNonNull(type, "exception type cannot be null");
     }
 
     public String getKey(){

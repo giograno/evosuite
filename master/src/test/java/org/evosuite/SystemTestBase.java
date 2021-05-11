@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (C) 2010-2018 Gordon Fraser, Andrea Arcuri and EvoSuite
  * contributors
  *
@@ -29,6 +29,7 @@ import org.evosuite.Properties.StatisticsBackend;
 import org.evosuite.Properties.StoppingCondition;
 import org.evosuite.coverage.exception.ExceptionCoverageFactory;
 import org.evosuite.coverage.line.LineCoverageSuiteFitness;
+import org.evosuite.ga.Chromosome;
 import org.evosuite.ga.archive.Archive;
 import org.evosuite.ga.metaheuristics.GeneticAlgorithm;
 import org.evosuite.result.TestGenerationResult;
@@ -38,6 +39,7 @@ import org.evosuite.runtime.mock.MockFramework;
 import org.evosuite.statistics.OutputVariable;
 import org.evosuite.statistics.RuntimeVariable;
 import org.evosuite.statistics.backend.DebugStatisticsBackend;
+import org.evosuite.symbolic.dse.algorithm.ExplorationAlgorithmBase;
 import org.evosuite.testcase.execution.TestCaseExecutor;
 import org.evosuite.testcase.execution.reset.ClassReInitializer;
 import org.evosuite.testsuite.TestSuiteChromosome;
@@ -112,6 +114,7 @@ public class SystemTestBase {
 		Properties.SERIALIZE_RESULT = false;
 		Properties.JUNIT_TESTS = false;
 		Properties.PLOT = false;
+		Properties.CLASS_PREFIX = "";
 
 		Properties.STOPPING_CONDITION = StoppingCondition.MAXSTATEMENTS;
 		Properties.SEARCH_BUDGET = 30000;
@@ -148,10 +151,10 @@ public class SystemTestBase {
 	 * next month, and so on in a %12 ring
 	 * @return
      */
-	private final long getSeed(){
+	private long getSeed(){
 
 		String id = this.getClass().getName() + "#" + name.getMethodName();
-		Integer counter = executionCounter.computeIfAbsent(id, c -> 0);
+		int counter = executionCounter.computeIfAbsent(id, c -> 0);
 
 		int month = (counter + new GregorianCalendar().get(Calendar.MONTH)) % 12;
 
@@ -173,8 +176,8 @@ public class SystemTestBase {
 		String[] command = new String[] { "-generateSuite", "-class", targetClass };
 
 		Object result = evosuite.parseCommandLine(command);
-		GeneticAlgorithm<?> ga = getGAFromResult(result);
-		TestSuiteChromosome best = (TestSuiteChromosome) ga.getBestIndividual();
+		GeneticAlgorithm<TestSuiteChromosome> ga = getGAFromResult(result);
+		TestSuiteChromosome best = ga.getBestIndividual();
 		System.out.println("EvolvedTestSuite:\n" + best);
 
 		double cov = best.getCoverageInstanceOf(LineCoverageSuiteFitness.class);
@@ -196,8 +199,8 @@ public class SystemTestBase {
 		String[] command = new String[] { "-generateSuite", "-class", targetClass };
 
 		Object result = evosuite.parseCommandLine(command);
-		GeneticAlgorithm<?> ga = getGAFromResult(result);
-		TestSuiteChromosome best = (TestSuiteChromosome) ga.getBestIndividual();
+		GeneticAlgorithm<TestSuiteChromosome> ga = getGAFromResult(result);
+		TestSuiteChromosome best = ga.getBestIndividual();
 		System.out.println("EvolvedTestSuite:\n" + best);
 
 		Assert.assertEquals("Non-optimal coverage: ", 1d, best.getCoverage(), 0.001);
@@ -227,19 +230,19 @@ public class SystemTestBase {
 
 
 
-	protected OutputVariable getOutputVariable(RuntimeVariable rv){
+	protected OutputVariable<?> getOutputVariable(RuntimeVariable rv){
 		if(!Properties.OUTPUT_VARIABLES.contains(rv.toString())){
 			throw new IllegalStateException("Properties.OUTPUT_VARIABLES needs to contain "+rv.toString());
 		}
 		Map<String, OutputVariable<?>> map = DebugStatisticsBackend.getLatestWritten();
 		Assert.assertNotNull(map);
-		OutputVariable out = map.get(rv.toString());
+		OutputVariable<?> out= map.get(rv.toString());
 		return out;
 	}
 
 
 	protected void checkUnstable() throws IllegalStateException{
-		OutputVariable unstable = getOutputVariable(RuntimeVariable.HadUnstableTests);
+		OutputVariable<?> unstable = getOutputVariable(RuntimeVariable.HadUnstableTests);
 		Assert.assertNotNull(unstable);
 		Assert.assertEquals(Boolean.FALSE, unstable.getValue());
 	}
@@ -344,12 +347,25 @@ public class SystemTestBase {
 		hasBeenAlreadyRun = false;
 	}
 	
-	@SuppressWarnings("unchecked")
-	protected GeneticAlgorithm<?> getGAFromResult(Object result) {
+
+	protected<T extends Chromosome<T>> GeneticAlgorithm<T> getGAFromResult(Object result) {
 		assert(result instanceof List);
-		List<List<TestGenerationResult>> results = (List<List<TestGenerationResult>>)result;
+		List<List<TestGenerationResult<T>>> results = (List<List<TestGenerationResult<T>>>)result;
 		assert(results.size() == 1);
 		//return results.iterator().next().getGeneticAlgorithm();
 		return results.get(0).get(0).getGeneticAlgorithm();
+	}
+
+	protected ExplorationAlgorithmBase getDSEAFromResult(Object result) {
+		assert (result instanceof List);
+		List<List<TestGenerationResult<?>>> results = (List<List<TestGenerationResult<?>>>) result;
+		assert (results.size() == 1);
+		return results.get(0).get(0).getDSEAlgorithm();
+	}
+
+	protected void checkDSEResultIsEmpty(Object result) {
+		assert (result instanceof List);
+		List<List<TestGenerationResult<?>>> results = (List<List<TestGenerationResult<?>>>) result;
+		assert (results.size() == 0);
 	}
 }

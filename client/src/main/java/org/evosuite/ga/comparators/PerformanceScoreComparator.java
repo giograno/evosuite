@@ -1,6 +1,6 @@
 package org.evosuite.ga.comparators;
 
-import org.evosuite.ga.Chromosome;
+import org.evosuite.testcase.TestChromosome;
 
 import java.io.Serializable;
 import java.util.Comparator;
@@ -10,15 +10,10 @@ import java.util.Comparator;
  *
  * @author Giovanni Grano
  */
-public class PerformanceScoreComparator<T extends Chromosome> implements Comparator<T>, Serializable {
-    
+public class PerformanceScoreComparator implements Comparator<TestChromosome>, Serializable {
+
     @Override
-    public int compare(T o1, T o2) {
-        if (o1.getPerformanceScore() > o2.getPerformanceScore())
-            return 1;
-        else if (o1.getPerformanceScore() < o2.getPerformanceScore())
-            return -1;
-        else
-            return 0;
+    public int compare(TestChromosome o1, TestChromosome o2) {
+        return Double.compare(o1.getPerformanceScore(), o2.getPerformanceScore());
     }
 }

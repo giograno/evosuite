@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (C) 2010-2018 Gordon Fraser, Andrea Arcuri and EvoSuite
  * contributors
  *
@@ -26,26 +26,45 @@ import org.evosuite.ga.Chromosome;
 import org.evosuite.utils.Randomness;
 
 
-	/**
-	 * {@inheritDoc}
-	 *
-	 * Select individual by rank
-	 */
-public class RankSelection<T extends Chromosome> extends SelectionFunction<T> {
+/**
+ * {@inheritDoc}
+ *
+ * Selects an individual by its rank.
+ */
+public class RankSelection<T extends Chromosome<T>> extends SelectionFunction<T> {
 
 	private static final long serialVersionUID = 7849303009915557682L;
-	@Override
+
+	public RankSelection() {
+	}
+
+	public RankSelection(RankSelection<?> other) {
+		// empty copy constructor
+	}
+
 	/**
-	 * Select index of next offspring
-	 * 
-	 * Population has to be sorted!
+	 * Returns the index of the next individual selected from the given
+	 * population, which is assumed to be already sorted.
+	 *
+	 * @param population the population to select an individual from
+	 * @return the index of the selected individual in the population
+	 * @implNote Approximates the index of the selected individual in {@code
+	 * O(1)} by transforming an equally distributed random variable {@code
+	 * 0 <= r <= 1}, as described by Whitley in the GENITOR algorithm (1989).
+	 * For rank biases between 1 and 2, this produces results almost identical
+	 * to the text-book specification of rank selection.
 	 */
+	@Override
 	public int getIndex(List<T> population) {
+		return RankSelection.getIdx(population);
+	}
+
+	public static int getIdx(final List<?> list) {
 		double r = Randomness.nextDouble();
 		double d = Properties.RANK_BIAS
-		        - Math.sqrt((Properties.RANK_BIAS * Properties.RANK_BIAS)
-		                - (4.0 * (Properties.RANK_BIAS - 1.0) * r));
-		int length = population.size();
+				- Math.sqrt((Properties.RANK_BIAS * Properties.RANK_BIAS)
+				- (4.0 * (Properties.RANK_BIAS - 1.0) * r));
+		int length = list.size();
 
 		d = d / 2.0 / (Properties.RANK_BIAS - 1.0);
 
@@ -56,5 +75,4 @@ public class RankSelection<T extends Chromosome> extends SelectionFunction<T> {
 		int index = (int) (length * d);
 		return index;
 	}
-
 }

@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (C) 2010-2018 Gordon Fraser, Andrea Arcuri and EvoSuite
  * contributors
  *
@@ -40,16 +40,13 @@ public abstract class AbstractFitnessFactory<T extends TestFitnessFunction> impl
 	 * coverage goals in this field in order to track this information in
 	 * SearchStatistics.
 	 */
-	public static long goalComputationTime = 0l;
+	public static long goalComputationTime = 0L;
 
 	
 	protected boolean isCUT(String className) {
-		if (!Properties.TARGET_CLASS.equals("")
-				&& !(className.equals(Properties.TARGET_CLASS) || className
-						.startsWith(Properties.TARGET_CLASS + "$"))) {
-			return false;
-		}
-		return true;
+		return Properties.TARGET_CLASS.equals("")
+				|| (className.equals(Properties.TARGET_CLASS)
+				|| className.startsWith(Properties.TARGET_CLASS + "$"));
 	}
 	
 	/** {@inheritDoc} */

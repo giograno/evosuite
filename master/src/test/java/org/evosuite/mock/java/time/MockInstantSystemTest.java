@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (C) 2010-2018 Gordon Fraser, Andrea Arcuri and EvoSuite
  * contributors
  *
@@ -40,7 +40,7 @@ public class MockInstantSystemTest extends SystemTestBase {
 
         Properties.TARGET_CLASS = targetClass;
         Properties.JUNIT_TESTS = true;
-        Properties.JUNIT_CHECK = true;
+        Properties.JUNIT_CHECK = Properties.JUnitCheckValues.TRUE;
         Properties.REPLACE_CALLS = true;
         Properties.OUTPUT_VARIABLES=""+ RuntimeVariable.HadUnstableTests;
 
@@ -48,8 +48,8 @@ public class MockInstantSystemTest extends SystemTestBase {
         String[] command = new String[] { "-generateSuite", "-class", targetClass };
         Object result = evosuite.parseCommandLine(command);
 
-        GeneticAlgorithm<?> ga = getGAFromResult(result);
-        TestSuiteChromosome best = (TestSuiteChromosome) ga.getBestIndividual();
+        GeneticAlgorithm<TestSuiteChromosome> ga = getGAFromResult(result);
+        TestSuiteChromosome best = ga.getBestIndividual();
 
         Assert.assertNotNull(best);
         Assert.assertEquals("Non-optimal coverage: ", 1d, best.getCoverage(), 0.001);

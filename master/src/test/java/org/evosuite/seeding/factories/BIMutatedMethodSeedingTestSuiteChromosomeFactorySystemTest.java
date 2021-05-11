@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (C) 2010-2018 Gordon Fraser, Andrea Arcuri and EvoSuite
  * contributors
  *
@@ -53,8 +53,8 @@ public class BIMutatedMethodSeedingTestSuiteChromosomeFactorySystemTest extends 
 
 		Object result = evosuite.parseCommandLine(command);
 
-		ga = (GeneticAlgorithm<TestSuiteChromosome>) getGAFromResult(result);
-		bestIndividual = (TestSuiteChromosome) ga.getBestIndividual();
+		ga = getGAFromResult(result);
+		bestIndividual = ga.getBestIndividual();
 	}
 	
 	@After

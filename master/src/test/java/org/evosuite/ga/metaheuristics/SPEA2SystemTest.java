@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (C) 2010-2018 Gordon Fraser, Andrea Arcuri and EvoSuite
  * contributors
  *
@@ -32,6 +32,7 @@ import org.evosuite.SystemTestBase;
 import org.evosuite.ga.Chromosome;
 import org.evosuite.ga.FitnessFunction;
 import org.evosuite.ga.problems.metrics.Spacing;
+import org.evosuite.testsuite.TestSuiteChromosome;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -62,7 +63,6 @@ public class SPEA2SystemTest extends SystemTestBase {
     Properties.ALGORITHM = Algorithm.SPEA2;
     Properties.SELECTION_FUNCTION = Properties.SelectionFunction.BINARY_TOURNAMENT;
     Properties.STOPPING_CONDITION = StoppingCondition.MAXGENERATIONS;
-    Properties.SEARCH_BUDGET = 20;
     Properties.MINIMIZE = false;
 
     EvoSuite evosuite = new EvoSuite();
@@ -74,16 +74,16 @@ public class SPEA2SystemTest extends SystemTestBase {
     Object result = evosuite.parseCommandLine(command);
     Assert.assertNotNull(result);
 
-    GeneticAlgorithm<?> ga = getGAFromResult(result);
+    GeneticAlgorithm<TestSuiteChromosome> ga = (GeneticAlgorithm<TestSuiteChromosome>) getGAFromResult(result);
 
-    final FitnessFunction<?> branch = ga.getFitnessFunctions().get(0);
-    final FitnessFunction<?> rho = ga.getFitnessFunctions().get(1);
+    final FitnessFunction<TestSuiteChromosome> branch = ga.getFitnessFunctions().get(0);
+    final FitnessFunction<TestSuiteChromosome> rho = ga.getFitnessFunctions().get(1);
 
-    List<Chromosome> population = new ArrayList<Chromosome>(ga.getBestIndividuals());
+    List<TestSuiteChromosome> population = new ArrayList<>(ga.getBestIndividuals());
 
     double[][] front = new double[population.size()][2];
     for (int i = 0; i < population.size(); i++) {
-      Chromosome c = population.get(i);
+      Chromosome<TestSuiteChromosome> c = population.get(i);
       front[i][0] = c.getFitness(branch);
       front[i][1] = c.getFitness(rho);
     }
@@ -96,6 +96,7 @@ public class SPEA2SystemTest extends SystemTestBase {
     String targetClass = BMICalculator.class.getCanonicalName();
 
     Properties.POPULATION = 50;
+    Properties.SEARCH_BUDGET = 10;
     double[][] front = test(targetClass);
 
     for (int i = 0; i < front.length; i++) {
@@ -115,6 +116,7 @@ public class SPEA2SystemTest extends SystemTestBase {
     String targetClass = BMICalculator.class.getCanonicalName();
 
     Properties.POPULATION = 10;
+    Properties.SEARCH_BUDGET = 40;
     double[][] front = test(targetClass);
 
     Spacing sp = new Spacing();

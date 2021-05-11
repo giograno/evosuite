@@ -3,14 +3,12 @@ package org.evosuite.performance.indicator;
 import org.evosuite.TestGenerationContext;
 import org.evosuite.coverage.branch.Branch;
 import org.evosuite.coverage.branch.BranchPool;
-import org.evosuite.ga.Chromosome;
 import org.evosuite.graphs.cfg.BasicBlock;
 import org.evosuite.graphs.cfg.BytecodeInstruction;
 import org.evosuite.graphs.cfg.BytecodeInstructionPool;
 import org.evosuite.performance.AbstractIndicator;
 import org.evosuite.testcase.TestChromosome;
 import org.evosuite.testcase.execution.ExecutionResult;
-import org.evosuite.testsuite.TestSuiteChromosome;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -25,7 +23,7 @@ import java.util.*;
 public class CoveredStatementsCounter extends AbstractIndicator {
 
     private static final Logger logger = LoggerFactory.getLogger(CoveredMethodCallCounter.class);
-    private static String INDICATOR = CoveredStatementsCounter.class.getName();
+    private static final String INDICATOR = CoveredStatementsCounter.class.getName();
 
     /** To keep track of the size of each basic block, which is identified by its characterizing branch */
     private static HashMap<Integer,Integer> branches;
@@ -57,16 +55,12 @@ public class CoveredStatementsCounter extends AbstractIndicator {
     }
 
     @Override
-    public double getIndicatorValue(Chromosome test) {
-        if (test instanceof TestSuiteChromosome)
-            throw new IllegalArgumentException("This indicator works at test case level");
-
-        if (test.getIndicatorValues().keySet().contains(INDICATOR))
+    public double getIndicatorValue(TestChromosome test) {
+        if (test.getIndicatorValues().containsKey(INDICATOR))
             return test.getIndicatorValue(INDICATOR);
 
         // retrieve the last execution
-        TestChromosome chromosome = (TestChromosome) test;
-        ExecutionResult result = chromosome.getLastExecutionResult();
+        ExecutionResult result = test.getLastExecutionResult();
 
         Map<Integer, Integer> noExecutionForConditionalNode =
                 result.getTrace().getNoExecutionForConditionalNode();
@@ -87,7 +81,7 @@ public class CoveredStatementsCounter extends AbstractIndicator {
         }
 
         for (String branchlessMethod : result.getTrace().getCoveredBranchlessMethods()){
-            if (methods.keySet().contains(branchlessMethod)) {
+            if (methods.containsKey(branchlessMethod)) {
                 int size = methods.get(branchlessMethod);
                 int nExecutions = result.getTrace().getMethodExecutionCount().get(branchlessMethod);
                 if (nExecutions > 2)

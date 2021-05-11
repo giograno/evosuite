@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (C) 2010-2018 Gordon Fraser, Andrea Arcuri and EvoSuite
  * contributors
  *
@@ -30,26 +30,26 @@ import org.evosuite.ga.FitnessFunction;
  * 
  * @author José Campos
  */
-public class SortByFitness implements Comparator<Chromosome>, Serializable {
+public class SortByFitness<T extends Chromosome<T>> implements Comparator<T>, Serializable {
 
     private static final long serialVersionUID = 4982933698286500461L;
 
-    private FitnessFunction<?> ff;
+    private final FitnessFunction<T> ff;
 
-    private boolean order;
+    private final boolean order;
 
     /**
      * 
      * @param ff
-     * @param des descending order
+     * @param desc descending order
      */
-    public SortByFitness(FitnessFunction<?> ff, boolean desc) {
+    public SortByFitness(FitnessFunction<T> ff, boolean desc) {
         this.ff = ff;
         this.order = desc;
     }
 
     @Override
-    public int compare(Chromosome c1, Chromosome c2)
+    public int compare(T c1, T c2)
     {
         if (c1 == null)
             return 1;
@@ -59,21 +59,8 @@ public class SortByFitness implements Comparator<Chromosome>, Serializable {
         double objetive1 = c1.getFitness(this.ff);
         double objetive2 = c2.getFitness(this.ff);
 
-        if (this.order) {
-            if (objetive1 < objetive2)
-                return 1;
-            else if (objetive1 > objetive2)
-                return -1;
-            else
-                return 0;
-        }
-        else {
-            if (objetive1 < objetive2)
-                return -1;
-            else if (objetive1 > objetive2)
-                return 1;
-            else
-                return 0;
-        }
+        return this.order
+                ? Double.compare(objetive2, objetive1)
+                : Double.compare(objetive1, objetive2);
     }
 }

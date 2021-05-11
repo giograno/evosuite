@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (C) 2010-2018 Gordon Fraser, Andrea Arcuri and EvoSuite
  * contributors
  *
@@ -20,8 +20,6 @@
 package org.evosuite.testcase.statements;
 
 import org.evosuite.Properties;
-import org.evosuite.runtime.annotation.BoundInputVariable;
-import org.evosuite.runtime.annotation.Constraints;
 import org.evosuite.runtime.util.Inputs;
 import org.evosuite.testcase.TestCase;
 import org.evosuite.testcase.variable.ArrayIndex;
@@ -35,6 +33,9 @@ import java.lang.reflect.Type;
 import java.util.*;
 
 /**
+ * A common superclass for statements that contain a call to an executable entity, i.e.,
+ * methods, constructors and functional mocks.
+ *
  * Created by Andrea Arcuri on 04/07/15.
  */
 public abstract class EntityWithParametersStatement extends AbstractStatement{
@@ -198,19 +199,6 @@ public abstract class EntityWithParametersStatement extends AbstractStatement{
             return false;
         }
 
-        for(int i=0; i<parameters.size(); i++){
-            if(parameters.get(i).equals(var)){
-
-                for(int j=0; j<parameterAnnotations[i].length; j++){
-                    if(parameterAnnotations[i][j] instanceof BoundInputVariable){
-                        return true;
-                    }
-                }
-
-                break;
-            }
-        }
-
         return false;
     }
 
@@ -221,15 +209,6 @@ public abstract class EntityWithParametersStatement extends AbstractStatement{
                 num++;
         }
         return num;
-    }
-
-    protected Constraints getConstraints(){
-        for(Annotation annotation : annotations){
-            if(annotation instanceof Constraints){
-                return (Constraints)annotation;
-            }
-        }
-        return null;
     }
 
     protected boolean mutateParameter(TestCase test, int numParameter) {
@@ -244,9 +223,7 @@ public abstract class EntityWithParametersStatement extends AbstractStatement{
         NullStatement nullStatement = new NullStatement(test, parameter.getType());
         Statement copy = null;
 
-        //check if NULL is a valid option
-        Constraints constraint = getConstraints();
-        boolean avoidNull =  constraint!=null && constraint.noNullInputs();
+        boolean avoidNull = false;
 
         if(Properties.HONOUR_DATA_ANNOTATIONS && (numParameter < parameterAnnotations.length)) {
             if (GenericUtils.isAnnotationTypePresent(parameterAnnotations[numParameter], GenericUtils.NONNULL)) {
@@ -255,13 +232,7 @@ public abstract class EntityWithParametersStatement extends AbstractStatement{
         }
         if(avoidNull){
             //be sure to remove all references pointing to NULL
-            Iterator<VariableReference> iter = objects.iterator();
-            while(iter.hasNext()){
-                VariableReference ref = iter.next();
-                if(ref instanceof NullReference){
-                    iter.remove();
-                }
-            }
+            objects.removeIf(ref -> ref instanceof NullReference);
 
         } else {
             // If it's not a primitive, then changing to null is also an option
@@ -273,7 +244,7 @@ public abstract class EntityWithParametersStatement extends AbstractStatement{
 
         // If there are fewer objects than parameters of that type,
         // we consider adding an instance
-        if(getNumParametersOfType(parameter.getVariableClass()) + 1 < objects.size()) {
+        if(getNumParametersOfType(parameter.getVariableClass()) + 1 > objects.size()) {
             Statement originalStatement = test.getStatement(parameter.getStPosition());
             copy = originalStatement.clone(test);
             if (originalStatement instanceof PrimitiveStatement<?>) {

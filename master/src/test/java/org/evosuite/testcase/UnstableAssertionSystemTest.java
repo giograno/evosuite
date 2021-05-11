@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (C) 2010-2018 Gordon Fraser, Andrea Arcuri and EvoSuite
  * contributors
  *
@@ -42,7 +42,7 @@ public class UnstableAssertionSystemTest extends SystemTestBase {
 
 	//private final boolean DEFAULT_JUNIT_CHECK_ON_SEPARATE_PROCESS = Properties.JUNIT_CHECK_ON_SEPARATE_PROCESS;
 	private final boolean DEFAULT_RESET_STATIC_FIELDS = Properties.RESET_STATIC_FIELDS;
-	private final boolean DEFAULT_JUNIT_CHECK = Properties.JUNIT_CHECK;
+	private final Properties.JUnitCheckValues DEFAULT_JUNIT_CHECK = Properties.JUNIT_CHECK;
 	private final boolean DEFAULT_JUNIT_TESTS = Properties.JUNIT_TESTS;
 	private final boolean DEFAULT_SANDBOX = Properties.SANDBOX;
 
@@ -50,7 +50,7 @@ public class UnstableAssertionSystemTest extends SystemTestBase {
 	public void saveProperties() {
 		// Properties.JUNIT_CHECK_ON_SEPARATE_PROCESS = true;
 		Properties.RESET_STATIC_FIELDS = true;
-		Properties.JUNIT_CHECK = true;
+		Properties.JUNIT_CHECK = Properties.JUnitCheckValues.TRUE;
 		Properties.JUNIT_TESTS = true;
 		Properties.SANDBOX = true;
 	}
@@ -76,12 +76,11 @@ public class UnstableAssertionSystemTest extends SystemTestBase {
 
 		Object result = evosuite.parseCommandLine(command);
 
-		GeneticAlgorithm<?> ga = getGAFromResult(result);
-		TestSuiteChromosome best = (TestSuiteChromosome) ga.getBestIndividual();
+		GeneticAlgorithm<TestSuiteChromosome> ga = getGAFromResult(result);
+		TestSuiteChromosome best = ga.getBestIndividual();
 		System.out.println("EvolvedTestSuite:\n" + best);
 		double best_fitness = best.getFitness();
-		Assert.assertTrue("Optimal coverage was not achieved ",
-				best_fitness == 0.0);
+        Assert.assertEquals("Optimal coverage was not achieved ", 0.0, best_fitness, 0.0);
 
 		Map<String, OutputVariable<?>> map = DebugStatisticsBackend.getLatestWritten();
 		Assert.assertNotNull(map);

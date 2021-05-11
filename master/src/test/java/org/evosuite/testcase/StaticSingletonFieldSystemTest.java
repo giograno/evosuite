@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (C) 2010-2018 Gordon Fraser, Andrea Arcuri and EvoSuite
  * contributors
  *
@@ -42,7 +42,7 @@ public class StaticSingletonFieldSystemTest extends SystemTestBase {
 		Properties.RESET_STATIC_FIELDS = true;
 		Properties.RESET_STATIC_FIELD_GETS = true;
 		Properties.SANDBOX = true;
-		Properties.JUNIT_CHECK = true;
+		Properties.JUNIT_CHECK = Properties.JUnitCheckValues.TRUE;
 		Properties.JUNIT_TESTS = true;
 		Properties.PURE_INSPECTORS = true;
 		Properties.OUTPUT_VARIABLES = "" + RuntimeVariable.HadUnstableTests;
@@ -59,8 +59,8 @@ public class StaticSingletonFieldSystemTest extends SystemTestBase {
 
 		Object result = evosuite.parseCommandLine(command);
 
-		GeneticAlgorithm<?> ga = getGAFromResult(result);
-		TestSuiteChromosome best = (TestSuiteChromosome) ga.getBestIndividual();
+		GeneticAlgorithm<TestSuiteChromosome> ga = getGAFromResult(result);
+		TestSuiteChromosome best = ga.getBestIndividual();
 
 		Map<String, OutputVariable<?>> map = DebugStatisticsBackend.getLatestWritten();
 		Assert.assertNotNull(map);
@@ -69,7 +69,7 @@ public class StaticSingletonFieldSystemTest extends SystemTestBase {
 		Assert.assertEquals("Unexpected unstabled test cases were generated",Boolean.FALSE, unstable.getValue());
 
 		double best_fitness = best.getFitness();
-		Assert.assertTrue("Optimal coverage was not achieved ", best_fitness == 0.0);
+        Assert.assertEquals("Optimal coverage was not achieved ", 0.0, best_fitness, 0.0);
 	}
 
 }

@@ -11,16 +11,17 @@ public class IndicatorsFactory {
     /**
      * Returns a list with all the performance indicators
      * todo: please Annibale implement here you trick for the command line parameters
-     * @return  a list of indicators
+     *
+     * @return a list of indicators
      */
     public static List<AbstractIndicator> getPerformanceIndicator() {
         List<AbstractIndicator> indicators = new ArrayList<>();
-        Properties.PerformanceIndicators[] propIndicators = null;
+        Properties.PerformanceIndicators[] propIndicators;
 
         propIndicators = Properties.MOSA_SECONDARY_OBJECTIVE;
 
-        for (int i = 0; i < propIndicators.length; i++) {
-            indicators.add(getIndicator(propIndicators[i]));
+        for (Properties.PerformanceIndicators propIndicator : propIndicators) {
+            indicators.add(getIndicator(propIndicator));
         }
         return indicators;
     }

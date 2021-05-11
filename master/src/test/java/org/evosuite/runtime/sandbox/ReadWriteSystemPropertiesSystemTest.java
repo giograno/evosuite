@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (C) 2010-2018 Gordon Fraser, Andrea Arcuri and EvoSuite
  * contributors
  *
@@ -74,8 +74,8 @@ public class ReadWriteSystemPropertiesSystemTest extends SystemTestBase {
 
 		Object result = evosuite.parseCommandLine(command);
 
-		GeneticAlgorithm<?> ga = getGAFromResult(result);
-		TestSuiteChromosome best = (TestSuiteChromosome) ga.getBestIndividual();
+		GeneticAlgorithm<TestSuiteChromosome> ga = getGAFromResult(result);
+		TestSuiteChromosome best = ga.getBestIndividual();
 		System.out.println("EvolvedTestSuite:\n" + best);
 		double cov = best.getCoverage();
 		Assert.assertEquals("Non-optimal coverage: ", 1d, cov, 0.001);
@@ -105,7 +105,7 @@ public class ReadWriteSystemPropertiesSystemTest extends SystemTestBase {
 		 * is set to null. But that would lead to a lot of problems :( eg cases
 		 * in which we end up in reading hundreds of thousands variables that do not exist
 		 */
-		Assert.assertTrue("Test code:\n" + code, ! code.contains("debug"));
+        Assert.assertFalse("Test code:\n" + code, code.contains("debug"));
 	}
 
 	@Test
@@ -124,8 +124,8 @@ public class ReadWriteSystemPropertiesSystemTest extends SystemTestBase {
 
 		Object result = evosuite.parseCommandLine(command);
 
-		GeneticAlgorithm<?> ga = getGAFromResult(result);
-		TestSuiteChromosome best = (TestSuiteChromosome) ga.getBestIndividual();
+		GeneticAlgorithm<TestSuiteChromosome> ga = getGAFromResult(result);
+		TestSuiteChromosome best = ga.getBestIndividual();
 		System.out.println("EvolvedTestSuite:\n" + best);
 		double cov = best.getCoverage();
 		//without replace calls, we shouldn't be able to achieve full coverage
@@ -148,8 +148,8 @@ public class ReadWriteSystemPropertiesSystemTest extends SystemTestBase {
 
 		Object result = evosuite.parseCommandLine(command);
 
-		GeneticAlgorithm<?> ga = getGAFromResult(result);
-		TestSuiteChromosome best = (TestSuiteChromosome) ga.getBestIndividual();
+		GeneticAlgorithm<TestSuiteChromosome> ga = getGAFromResult(result);
+		TestSuiteChromosome best = ga.getBestIndividual();
 		System.out.println("EvolvedTestSuite:\n" + best);
 		double cov = best.getCoverage();
 		Assert.assertEquals("Non-optimal coverage: ", 1d, cov, 0.001);

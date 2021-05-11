@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (C) 2010-2018 Gordon Fraser, Andrea Arcuri and EvoSuite
  * contributors
  *
@@ -244,49 +244,42 @@ public final class Instrumenter
 		}
 		*/
 		
-		final ArrayList<MethodNode> wrappedMethods = new ArrayList<MethodNode>();
+		final ArrayList<MethodNode> wrappedMethods = new ArrayList<>();
 		MethodNode methodNode;
-		
-		final Iterator<MethodNode> methodIter = cn.methods.iterator();
-		while(methodIter.hasNext())
-		{
-			methodNode = methodIter.next();
-			
+
+		for (final MethodNode node : cn.methods) {
+			methodNode = node;
+
 			// consider only public methods which are not abstract or native
-			if( ! TransformerUtil.isPrivate(methodNode.access)  &&
-				! TransformerUtil.isAbstract(methodNode.access) &&
-				! TransformerUtil.isNative(methodNode.access)   && 
-				! methodNode.name.equals("<clinit>"))
-			{
-				if(! TransformerUtil.isPublic(methodNode.access)) {
+			if (!TransformerUtil.isPrivate(methodNode.access) &&
+					!TransformerUtil.isAbstract(methodNode.access) &&
+					!TransformerUtil.isNative(methodNode.access) &&
+					!methodNode.name.equals("<clinit>")) {
+				if (!TransformerUtil.isPublic(methodNode.access)) {
 					//if(!Properties.CLASS_PREFIX.equals(packageName)) {
-						transformWrapperCalls(methodNode);
-						continue;
+					transformWrapperCalls(methodNode);
+					continue;
 					//}
 				}
-				if(methodNode.name.equals("<init>"))
-				{
-					if(TransformerUtil.isAbstract(cn.access)) {
+				if (methodNode.name.equals("<init>")) {
+					if (TransformerUtil.isAbstract(cn.access)) {
 						// We cannot invoke constructors of abstract classes directly
 						continue;
 					}
 					this.addFieldRegistryRegisterCall(methodNode);
 				}
-				
+
 				this.instrumentPUTXXXFieldAccesses(cn, internalClassName, methodNode);
 				this.instrumentGETXXXFieldAccesses(cn, internalClassName, methodNode);
-				
+
 				this.instrumentMethod(cn, internalClassName, methodNode, wrappedMethods);
 			} else {
-				transformWrapperCalls(methodNode);				
+				transformWrapperCalls(methodNode);
 			}
 		}
 		
 		final int numWM = wrappedMethods.size();
-		for(int i = 0; i < numWM; i++)
-		{
-			cn.methods.add(wrappedMethods.get(i));
-		}
+		cn.methods.addAll(wrappedMethods);
 		
 		TraceClassVisitor tcv = new TraceClassVisitor(new PrintWriter(System.err));
 		cn.accept(tcv);
@@ -604,8 +597,8 @@ public final class Instrumenter
 		final MethodNode wrappingMethodNode = new MethodNode(methodNode.access, 
 															 methodNode.name, 
 															 methodNode.desc, 
-															 methodNode.signature, 
-															 (String[])methodNode.exceptions.toArray(new String[methodNode.exceptions.size()]));
+															 methodNode.signature,
+				methodNode.exceptions.toArray(new String[methodNode.exceptions.size()]));
 		wrappingMethodNode.maxStack = methodNode.maxStack;
 		
 		// assign annotations to wrapping method
@@ -701,13 +694,11 @@ public final class Instrumenter
 			
 			// consider method arguments to find right variable index
 			final Type[] argTypes = Type.getArgumentTypes(methodNode.desc);
-			for(int i = 0; i < argTypes.length; i++)
-			{
+			for (final Type argType : argTypes) {
 				varReturnValue++;
-				
+
 				// long/double take two registers
-				if(argTypes[i].equals(Type.LONG_TYPE) || argTypes[i].equals(Type.DOUBLE_TYPE) )
-				{
+				if (argType.equals(Type.LONG_TYPE) || argType.equals(Type.DOUBLE_TYPE)) {
 					varReturnValue++;
 				}
 			}
@@ -735,13 +726,11 @@ public final class Instrumenter
 		
 		
 		final Type[] argTypes = Type.getArgumentTypes(methodNode.desc);
-		for(int i = 0; i < argTypes.length; i++)
-		{
-			this.addLoadInsn(wInstructions, argTypes[i], var++);
-			
+		for (final Type argType : argTypes) {
+			this.addLoadInsn(wInstructions, argType, var++);
+
 			// long/double take two registers
-			if(argTypes[i].equals(Type.LONG_TYPE) || argTypes[i].equals(Type.DOUBLE_TYPE) )
-			{
+			if (argType.equals(Type.LONG_TYPE) || argType.equals(Type.DOUBLE_TYPE)) {
 				var++;
 			}
 		}
@@ -934,7 +923,7 @@ public final class Instrumenter
 				}
 			} else if(insn.getOpcode() == Opcodes.NEW || insn.getOpcode() == Opcodes.CHECKCAST) {
 				TypeInsnNode typeInsnNode = (TypeInsnNode)insn;
-				Type generatedType = Type.getType(typeInsnNode.desc);
+				Type generatedType = Type.getObjectType(typeInsnNode.desc);
 				String name = generatedType.getInternalName().replace('/', '.');
 				logger.debug("Checking for replacement of "+name);
 				for(Class<?> wrapperClass : wrapperClasses) {
@@ -1077,49 +1066,49 @@ public final class Instrumenter
 		{
 			il.add(new VarInsnNode(Opcodes.ILOAD, argLocation));
 			il.add(new MethodInsnNode(Opcodes.INVOKESTATIC, "java/lang/Boolean",
-					"valueOf", "(Z)Ljava/lang/Boolean;"));
+					"valueOf", "(Z)Ljava/lang/Boolean;",false));
 		} 
 		else if (type.equals(Type.CHAR_TYPE)) 
 		{
 			il.add(new VarInsnNode(Opcodes.ILOAD, argLocation));
 			il.add(new MethodInsnNode(Opcodes.INVOKESTATIC, "java/lang/Character",
-					"valueOf", "(C)Ljava/lang/Character;"));
+					"valueOf", "(C)Ljava/lang/Character;",false));
 		} 
 		else if (type.equals(Type.BYTE_TYPE)) 
 		{
 			il.add(new VarInsnNode(Opcodes.ILOAD, argLocation));
 			il.add(new MethodInsnNode(Opcodes.INVOKESTATIC, "java/lang/Byte",
-					"valueOf", "(B)Ljava/lang/Byte;"));
+					"valueOf", "(B)Ljava/lang/Byte;",false));
 		} 
 		else if (type.equals(Type.SHORT_TYPE)) 
 		{
 			il.add(new VarInsnNode(Opcodes.ILOAD, argLocation));
 			il.add(new MethodInsnNode(Opcodes.INVOKESTATIC, "java/lang/Short",
-					"valueOf", "(S)Ljava/lang/Short;"));
+					"valueOf", "(S)Ljava/lang/Short;",false));
 		} 
 		else if (type.equals(Type.INT_TYPE)) 
 		{
 			il.add(new VarInsnNode(Opcodes.ILOAD, argLocation));
 			il.add(new MethodInsnNode(Opcodes.INVOKESTATIC, "java/lang/Integer",
-					"valueOf", "(I)Ljava/lang/Integer;"));
+					"valueOf", "(I)Ljava/lang/Integer;", false));
 		} 
 		else if (type.equals(Type.FLOAT_TYPE)) 
 		{
 			il.add(new VarInsnNode(Opcodes.FLOAD, argLocation));
 			il.add(new MethodInsnNode(Opcodes.INVOKESTATIC, "java/lang/Float",
-					"valueOf", "(F)Ljava/lang/Float;"));
+					"valueOf", "(F)Ljava/lang/Float;", false));
 		} 
 		else if (type.equals(Type.LONG_TYPE)) 
 		{
 			il.add(new VarInsnNode(Opcodes.LLOAD, argLocation));
 			il.add(new MethodInsnNode(Opcodes.INVOKESTATIC, "java/lang/Long",
-					"valueOf", "(J)Ljava/lang/Long;"));
+					"valueOf", "(J)Ljava/lang/Long;",false));
 		} 
 		else if (type.equals(Type.DOUBLE_TYPE)) 
 		{
 			il.add(new VarInsnNode(Opcodes.DLOAD, argLocation));
 			il.add(new MethodInsnNode(Opcodes.INVOKESTATIC, "java/lang/Double",
-					"valueOf", "(D)Ljava/lang/Double;"));
+					"valueOf", "(D)Ljava/lang/Double;",false));
 		} 
 		else 
 		{
@@ -1134,42 +1123,42 @@ public final class Instrumenter
 		if (type.equals(Type.BOOLEAN_TYPE)) 
 		{
 			il.add(new MethodInsnNode(Opcodes.INVOKESTATIC, "java/lang/Boolean",
-					"valueOf", "(Z)Ljava/lang/Boolean;"));
+					"valueOf", "(Z)Ljava/lang/Boolean;",false));
 		} 
 		else if (type.equals(Type.CHAR_TYPE)) 
 		{
 			il.add(new MethodInsnNode(Opcodes.INVOKESTATIC, "java/lang/Character",
-					"valueOf", "(C)Ljava/lang/Character;"));
+					"valueOf", "(C)Ljava/lang/Character;",false));
 		} 
 		else if (type.equals(Type.BYTE_TYPE)) 
 		{
 			il.add(new MethodInsnNode(Opcodes.INVOKESTATIC, "java/lang/Byte",
-					"valueOf", "(B)Ljava/lang/Byte;"));
+					"valueOf", "(B)Ljava/lang/Byte;",false));
 		} 
 		else if (type.equals(Type.SHORT_TYPE)) 
 		{
 			il.add(new MethodInsnNode(Opcodes.INVOKESTATIC, "java/lang/Short",
-					"valueOf", "(S)Ljava/lang/Short;"));
+					"valueOf", "(S)Ljava/lang/Short;",false));
 		} 
 		else if (type.equals(Type.INT_TYPE)) 
 		{
 			il.add(new MethodInsnNode(Opcodes.INVOKESTATIC, "java/lang/Integer",
-					"valueOf", "(I)Ljava/lang/Integer;"));
+					"valueOf", "(I)Ljava/lang/Integer;",false));
 		} 
 		else if (type.equals(Type.FLOAT_TYPE)) 
 		{
 			il.add(new MethodInsnNode(Opcodes.INVOKESTATIC, "java/lang/Float",
-					"valueOf", "(F)Ljava/lang/Float;"));
+					"valueOf", "(F)Ljava/lang/Float;",false));
 		} 
 		else if (type.equals(Type.LONG_TYPE)) 
 		{
 			il.add(new MethodInsnNode(Opcodes.INVOKESTATIC, "java/lang/Long",
-					"valueOf", "(J)Ljava/lang/Long;"));
+					"valueOf", "(J)Ljava/lang/Long;",false));
 		} 
 		else if (type.equals(Type.DOUBLE_TYPE)) 
 		{
 			il.add(new MethodInsnNode(Opcodes.INVOKESTATIC, "java/lang/Double",
-					"valueOf", "(D)Ljava/lang/Double;"));
+					"valueOf", "(D)Ljava/lang/Double;",false));
 		} 
 	}
 	
@@ -1179,42 +1168,42 @@ public final class Instrumenter
 		if (type.equals(Type.BOOLEAN_TYPE)) 
 		{
 			il.add(new MethodInsnNode(Opcodes.INVOKEVIRTUAL, "java/lang/Boolean",
-					"booleanValue", "()Z"));
+					"booleanValue", "()Z",false));
 		} 
 		else if (type.equals(Type.CHAR_TYPE)) 
 		{
 			il.add(new MethodInsnNode(Opcodes.INVOKEVIRTUAL, "java/lang/Character",
-					"charValue", "()C"));
+					"charValue", "()C",false));
 		} 
 		else if (type.equals(Type.BYTE_TYPE)) 
 		{
 			il.add(new MethodInsnNode(Opcodes.INVOKEVIRTUAL, "java/lang/Byte",
-					"byteValue", "()B"));
+					"byteValue", "()B",false));
 		} 
 		else if (type.equals(Type.SHORT_TYPE)) 
 		{
 			il.add(new MethodInsnNode(Opcodes.INVOKEVIRTUAL, "java/lang/Short",
-					"shortValue", "()S"));
+					"shortValue", "()S",false));
 		} 
 		else if (type.equals(Type.INT_TYPE)) 
 		{
 			il.add(new MethodInsnNode(Opcodes.INVOKEVIRTUAL, "java/lang/Integer",
-					"intValue", "()I"));
+					"intValue", "()I",false));
 		} 
 		else if (type.equals(Type.FLOAT_TYPE)) 
 		{
 			il.add(new MethodInsnNode(Opcodes.INVOKEVIRTUAL, "java/lang/Float",
-					"floatValue", "()F"));
+					"floatValue", "()F",false));
 		} 
 		else if (type.equals(Type.LONG_TYPE)) 
 		{
 			il.add(new MethodInsnNode(Opcodes.INVOKEVIRTUAL, "java/lang/Long",
-					"longValue", "()J"));
+					"longValue", "()J",false));
 		} 
 		else if (type.equals(Type.DOUBLE_TYPE)) 
 		{
 			il.add(new MethodInsnNode(Opcodes.INVOKEVIRTUAL, "java/lang/Double",
-					"doubleValue", "()D"));
+					"doubleValue", "()D",false));
 		} 
 	}
 	

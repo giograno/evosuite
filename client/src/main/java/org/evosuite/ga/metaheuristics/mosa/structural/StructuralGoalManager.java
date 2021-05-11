@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (C) 2010-2018 Gordon Fraser, Andrea Arcuri and EvoSuite
  * contributors
  *
@@ -19,43 +19,59 @@
  */
 package org.evosuite.ga.metaheuristics.mosa.structural;
 
-import java.util.ArrayList;
-import java.util.HashMap;
+import java.io.Serializable;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
-import org.evosuite.ga.Chromosome;
-import org.evosuite.ga.FitnessFunction;
+import org.evosuite.ga.archive.Archive;
+import org.evosuite.ga.metaheuristics.GeneticAlgorithm;
 import org.evosuite.testcase.TestChromosome;
 import org.evosuite.testcase.TestFitnessFunction;
 
 
 /**
- * 
- * 
+ * A class for managing coverage targets based on structural dependencies. More specifically,
+ * control dependence information of the UIT is used to derive the set of targets currently aimed
+ * at. Also maintains an archive of the best chromosomes satisfying a given coverage goal.
+ *
  * @author Annibale Panichella
  */
-public abstract class StructuralGoalManager<T extends Chromosome> {
+public abstract class StructuralGoalManager implements Serializable {
 
-	/** Set of yet to cover goals **/
-	protected Set<FitnessFunction<T>> uncoveredGoals;
+	private static final long serialVersionUID = -2577487057354286024L;
 
-	/** Set of goals currently used as objectives **/
-	protected Set<FitnessFunction<T>> currentGoals;
+	/**
+	 * Set of goals currently used as objectives.
+	 * <p>
+	 * The idea is to consider only those gaols that are independent from any other targets. That
+	 * is, the gaols that
+	 * <ol>
+	 *     <li>are free of control dependencies, or</li>
+	 *     <li>only have direct control dependencies to already covered gaols.</li>
+	 * </ol>
+	 * <p>
+	 * Each goal is encoded by a corresponding fitness function, which returns an optimal fitness value if the goal has been reached by a given
+	 * chromosome. All functions are required to be either minimization or maximization functions,
+	 * not a mix of both.
+	 */
+	protected Set<TestFitnessFunction> currentGoals;
 
-	/** Map of covered goals **/
-	protected Map<FitnessFunction<T>, T> coveredGoals;
+	/** Archive of tests and corresponding covered targets*/
+	protected Archive archive;
 
-	/** Map of test to archive and corresponding covered targets*/
-	protected Map<T, List<FitnessFunction<T>>> archive;
+	/**
+	 * Creates a new {@code StructuralGoalManager} with the given list of targets.
+	 *
+	 * @param fitnessFunctions The targets to cover, with each individual target encoded as its own
+	 *                         fitness function.
+	 */
+	protected StructuralGoalManager(List<TestFitnessFunction> fitnessFunctions){
+		currentGoals = new HashSet<>(fitnessFunctions.size());
+		archive = Archive.getArchiveInstance();
 
-	protected StructuralGoalManager(List<FitnessFunction<T>> fitnessFunctions){
-		uncoveredGoals = new HashSet<FitnessFunction<T>>(fitnessFunctions.size());
-		currentGoals = new HashSet<FitnessFunction<T>>(fitnessFunctions.size());
-		coveredGoals = new HashMap<FitnessFunction<T>, T>(fitnessFunctions.size());
-		archive = new HashMap<T, List<FitnessFunction<T>>>();
+		// initahialize uncovered goals
+		this.archive.addTargets(fitnessFunctions);
 	}
 
 	/**
@@ -63,80 +79,59 @@ public abstract class StructuralGoalManager<T extends Chromosome> {
 	 * @param c a TestChromosome
 	 * @return covered goals along with the corresponding test case
 	 */
-	public abstract void calculateFitness(T c);
+	public abstract void calculateFitness(TestChromosome c,
+										  GeneticAlgorithm<TestChromosome> ga);
 
-	public Set<FitnessFunction<T>> getUncoveredGoals() {
-		return uncoveredGoals;
+	/**
+	 * Returns the set of yet uncovered goals.
+	 *
+	 * @return uncovered goals
+	 */
+	public Set<TestFitnessFunction> getUncoveredGoals() {
+		return this.archive.getUncoveredTargets();
 	}
 
-	public Set<FitnessFunction<T>> getCurrentGoals() {
+	/**
+	 * Returns the subset of uncovered goals that are currently targeted. Each such goal has a
+	 * direct control dependency to one of the already covered goals.
+	 *
+	 * @return all currently targeted goals
+	 */
+	public Set<TestFitnessFunction> getCurrentGoals() {
 		return currentGoals;
 	}
 
-	public Map<FitnessFunction<T>, T> getCoveredGoals() {
-		return coveredGoals;
+	/**
+	 * Returns the set of already covered goals.
+	 *
+	 * @return the covered goals
+	 */
+	public Set<TestFitnessFunction> getCoveredGoals() {
+		return this.archive.getCoveredTargets();
 	}
 
-	protected boolean isAlreadyCovered(FitnessFunction<T> target){
-		if (uncoveredGoals.size() < coveredGoals.keySet().size()){
-			if (!uncoveredGoals.contains(target))
-				return true;
-		} else {
-			if (coveredGoals.keySet().contains(target))
-				return true;
-		}
-		return false;
+	/**
+	 * Tells whether an individual covering the given target is already present in the archive.
+	 *
+	 * @param target the goal to be covered
+	 * @return {@code true} if the archive contains a chromosome that covers the target
+	 */
+	protected boolean isAlreadyCovered(TestFitnessFunction target){
+		return this.archive.getCoveredTargets().contains(target);
 	}
 
-	protected void updateCoveredGoals(FitnessFunction<T> f, T tc) {
+	/**
+	 * Records that the given coverage goal is satisfied by the given chromosome.
+	 *
+	 * @param f the coverage goal to be satisfied
+	 * @param tc the chromosome satisfying the goal
+	 */
+	protected void updateCoveredGoals(TestFitnessFunction f, TestChromosome tc) {
 		// the next two lines are needed since that coverage information are used
 		// during EvoSuite post-processing
-		TestChromosome tch = (TestChromosome) tc;
-		tch.getTestCase().getCoveredGoals().add((TestFitnessFunction) f);
+		tc.getTestCase().getCoveredGoals().add(f);
 
 		// update covered targets
-		boolean toArchive = false;
-		T best = coveredGoals.get(f);
-		if (best == null){
-			toArchive = true;
-			coveredGoals.put(f, tc);
-			uncoveredGoals.remove(f);
-			currentGoals.remove(f);
-		} else {
-			double bestSize = best.size();
-			double size = tc.size();
-			if (size < bestSize && size > 1){
-				toArchive = true;
-				coveredGoals.put(f, tc);
-				archive.get(best).remove(f);
-				if (archive.get(best).size() == 0)
-					archive.remove(best);
-			}
-		}
-
-		// update archive
-		if (toArchive){
-			List<FitnessFunction<T>> coveredTargets = archive.get(tc);
-			if (coveredTargets == null){
-				List<FitnessFunction<T>> list = new ArrayList<FitnessFunction<T>>();
-				list.add(f);
-				archive.put(tc, list);
-			} else {
-				coveredTargets.add(f);
-			}
-		}
+		this.archive.updateArchive(f, tc, tc.getFitness(f));
 	}
-
-	public Set<T> getArchive(){
-		return this.archive.keySet();
-	}
-
-	public int getNumberOfCoveredTargets(Class<?> targetClass) {
-		return (int) this.coveredGoals.keySet().stream().filter(target -> target.getClass() == targetClass).count();
-	}
-
-	public int getNumberOfUncoveredTargets(Class<?> targetClass) {
-		return (int) this.uncoveredGoals.stream().filter(target -> target.getClass() == targetClass).count();
-	}
-
 }

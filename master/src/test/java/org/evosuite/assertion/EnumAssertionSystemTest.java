@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (C) 2010-2018 Gordon Fraser, Andrea Arcuri and EvoSuite
  * contributors
  *
@@ -19,7 +19,6 @@
  */
 package org.evosuite.assertion;
 
-import com.examples.with.different.packagename.ExampleNullAssertion;
 import com.examples.with.different.packagename.assertion.ExampleReturningEnum;
 import org.evosuite.EvoSuite;
 import org.evosuite.SystemTestBase;
@@ -47,8 +46,8 @@ public class EnumAssertionSystemTest extends SystemTestBase {
 
         Object result = evosuite.parseCommandLine(command);
 
-        GeneticAlgorithm<?> ga = getGAFromResult(result);
-        TestSuiteChromosome suite = (TestSuiteChromosome) ga.getBestIndividual();
+        GeneticAlgorithm<TestSuiteChromosome> ga = getGAFromResult(result);
+        TestSuiteChromosome suite = ga.getBestIndividual();
         System.out.println(suite.toString());
 
         Assert.assertTrue(suite.size() > 0);
@@ -56,7 +55,7 @@ public class EnumAssertionSystemTest extends SystemTestBase {
             boolean hasEnumAssertion = false;
             for(Assertion ass : test.getAssertions()) {
                 if(ass instanceof PrimitiveAssertion) {
-                    Assert.assertTrue(((PrimitiveAssertion)ass).getValue().getClass().isEnum());
+                    Assert.assertTrue(ass.getValue().getClass().isEnum());
                     hasEnumAssertion = true;
                 }
             }
@@ -81,8 +80,8 @@ public class EnumAssertionSystemTest extends SystemTestBase {
 
         Object result = evosuite.parseCommandLine(command);
 
-        GeneticAlgorithm<?> ga = getGAFromResult(result);
-        TestSuiteChromosome suite = (TestSuiteChromosome) ga.getBestIndividual();
+        GeneticAlgorithm<TestSuiteChromosome> ga = getGAFromResult(result);
+        TestSuiteChromosome suite = ga.getBestIndividual();
         System.out.println(suite.toString());
 
         Assert.assertTrue(suite.size() > 0);
@@ -90,7 +89,7 @@ public class EnumAssertionSystemTest extends SystemTestBase {
             boolean hasEnumAssertion = false;
             for(Assertion ass : test.getAssertions()) {
                 if(ass instanceof PrimitiveAssertion) {
-                    Assert.assertTrue(((PrimitiveAssertion)ass).getValue().getClass().isEnum());
+                    Assert.assertTrue(ass.getValue().getClass().isEnum());
                     hasEnumAssertion = true;
                 }
             }

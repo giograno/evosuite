@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (C) 2010-2018 Gordon Fraser, Andrea Arcuri and EvoSuite
  * contributors
  *
@@ -20,12 +20,11 @@
 package org.evosuite.coverage.mutation;
 
 import org.evosuite.Properties;
+import org.evosuite.TestGenerationContext;
 import org.evosuite.ga.archive.Archive;
-import org.evosuite.testcase.ExecutableChromosome;
 import org.evosuite.testcase.TestChromosome;
 import org.evosuite.testcase.TestFitnessFunction;
 import org.evosuite.testcase.execution.ExecutionResult;
-import org.evosuite.testsuite.AbstractTestSuiteChromosome;
 import org.evosuite.testsuite.TestSuiteChromosome;
 
 import java.util.*;
@@ -51,23 +50,22 @@ public class OnlyMutationSuiteFitness extends MutationSuiteFitness {
 	 */
 	/** {@inheritDoc} */
 	@Override
-	public double getFitness(
-	        AbstractTestSuiteChromosome<? extends ExecutableChromosome> individual) {
-		/**
+	public double getFitness(TestSuiteChromosome individual) {
+		/*
 		 * e.g. classes with only static constructors
 		 */
 		if (this.numMutants == 0) {
-			updateIndividual(this, individual, 0.0);
-			((TestSuiteChromosome) individual).setCoverage(this, 1.0);
-			((TestSuiteChromosome) individual).setNumOfCoveredGoals(this, 0);
+			updateIndividual(individual, 0.0);
+			individual.setCoverage(this, 1.0);
+			individual.setNumOfCoveredGoals(this, 0);
 			return 0.0;
 		}
 
 		List<ExecutionResult> results = runTestSuite(individual);
 
 		double fitness = 0.0;
-		Map<Integer, Double> mutant_distance = new LinkedHashMap<Integer, Double>();
-		Set<Integer> touchedMutants = new LinkedHashSet<Integer>();
+		Map<Integer, Double> mutant_distance = new LinkedHashMap<>();
+		Set<Integer> touchedMutants = new LinkedHashSet<>();
 
 		for (ExecutionResult result : results) {
 			// Using private reflection can lead to false positives
@@ -90,10 +88,7 @@ public class OnlyMutationSuiteFitness extends MutationSuiteFitness {
 			test.setLastExecutionResult(result);
 			test.setChanged(false);
 
-			Iterator<Entry<Integer, MutationTestFitness>> it = this.mutantMap.entrySet().iterator();
-			while (it.hasNext()) {
-				Entry<Integer, MutationTestFitness> entry = it.next();
-
+			for (final Entry<Integer, MutationTestFitness> entry : this.mutantMap.entrySet()) {
 				int mutantID = entry.getKey();
 				TestFitnessFunction goal = entry.getValue();
 
@@ -122,7 +117,7 @@ public class OnlyMutationSuiteFitness extends MutationSuiteFitness {
 		}
 
 		// Second objective: touch all mutants?
-		fitness += MutationPool.getMutantCounter() - touchedMutants.size();
+		fitness += MutationPool.getInstance(TestGenerationContext.getInstance().getClassLoaderForSUT()).getMutantCounter() - touchedMutants.size();
 		int covered = this.removedMutants.size();
 
 		for (Double distance : mutant_distance.values()) {
@@ -136,11 +131,11 @@ public class OnlyMutationSuiteFitness extends MutationSuiteFitness {
 			if (distance == 0.0)
 				covered++;
 		}
-		
-		updateIndividual(this, individual, fitness);
-		((TestSuiteChromosome) individual).setCoverage(this, (double) covered / (double) this.numMutants);
-		((TestSuiteChromosome) individual).setNumOfCoveredGoals(this, covered);
-		
+
+		updateIndividual(individual, fitness);
+		individual.setCoverage(this, (double) covered / (double) this.numMutants);
+		individual.setNumOfCoveredGoals(this, covered);
+
 		return fitness;
 	}
 }

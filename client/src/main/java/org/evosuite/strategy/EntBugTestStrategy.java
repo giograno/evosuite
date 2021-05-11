@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (C) 2010-2018 Gordon Fraser, Andrea Arcuri and EvoSuite
  * contributors
  *
@@ -28,6 +28,7 @@ import org.evosuite.coverage.FitnessFunctions;
 import org.evosuite.coverage.rho.RhoCoverageFactory;
 import org.evosuite.coverage.rho.RhoCoverageTestFitness;
 import org.evosuite.ga.metaheuristics.GeneticAlgorithm;
+import org.evosuite.ga.metaheuristics.TestSuiteAdapter;
 import org.evosuite.result.TestGenerationResultBuilder;
 import org.evosuite.rmi.ClientServices;
 import org.evosuite.rmi.service.ClientState;
@@ -92,7 +93,7 @@ public class EntBugTestStrategy extends TestGenerationStrategy {
 		ga.addFitnessFunction(rhoTestFitnessFunction);
 
 		// Goals
-		List<TestFitnessFunction> goals = new ArrayList<TestFitnessFunction>(rhoFactory.getCoverageGoals());
+		List<TestFitnessFunction> goals = new ArrayList<>(rhoFactory.getCoverageGoals());
 		LoggingUtils.getEvoLogger().info("* Total number of test goals: ");        
         LoggingUtils.getEvoLogger().info("  - Rho " + goals.size());
 		ClientServices.getInstance().getClientNode().changeState(ClientState.SEARCH);
@@ -116,7 +117,7 @@ public class EntBugTestStrategy extends TestGenerationStrategy {
 			ga.generateSolution();
 			number_of_generations--;
 
-			TestChromosome best = (TestChromosome) ga.getBestIndividual();
+			TestChromosome best = ga.getBestIndividual();
 			if (best.getLastExecutionResult() == null) {
 				// FIXME not sure yet how this can be null
 				// some timeout?

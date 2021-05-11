@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (C) 2010-2018 Gordon Fraser, Andrea Arcuri and EvoSuite
  * contributors
  *
@@ -89,7 +89,7 @@ public class Assertions {
   }
 
   public static void check(final boolean b, Throwable t) {
-    if (b == false) {
+    if (!b) {
       IllegalStateException ise = new IllegalStateException(t);
       throw ise;
     }
@@ -99,7 +99,7 @@ public class Assertions {
    * @param msg for exception, in case b==false
    */
   public static void check(final boolean b, String msg) {
-    if (b == false) {
+    if (!b) {
       IllegalStateException ise = new IllegalStateException(msg);
       throw ise;
     }

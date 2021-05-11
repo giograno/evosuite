@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (C) 2010-2018 Gordon Fraser, Andrea Arcuri and EvoSuite
  * contributors
  *
@@ -31,10 +31,9 @@ import java.io.Serializable;
  */
 public class BudgetConsumptionMonitor implements Serializable {
 
-	private static final long serialVersionUID = 146182080947267628L;
+	private static final long serialVersionUID = -4282519578535413645L;
 
 	private static final Logger logger = LoggerFactory.getLogger(BudgetConsumptionMonitor.class);
-
 	/** Coverage achieved in the previous generation */
 	private double past_coverage;
 

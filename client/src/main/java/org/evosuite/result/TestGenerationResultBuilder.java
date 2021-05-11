@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (C) 2010-2018 Gordon Fraser, Andrea Arcuri and EvoSuite
  * contributors
  *
@@ -33,18 +33,21 @@ import org.evosuite.coverage.branch.BranchPool;
 import org.evosuite.coverage.mutation.Mutation;
 import org.evosuite.coverage.mutation.MutationPool;
 import org.evosuite.coverage.mutation.MutationTimeoutStoppingCondition;
+import org.evosuite.ga.Chromosome;
 import org.evosuite.ga.FitnessFunction;
 import org.evosuite.ga.metaheuristics.GeneticAlgorithm;
 import org.evosuite.instrumentation.LinePool;
 import org.evosuite.result.TestGenerationResult.Status;
+import org.evosuite.symbolic.dse.algorithm.ExplorationAlgorithmBase;
 import org.evosuite.testcase.TestCase;
 import org.evosuite.testcase.execution.ExecutionResult;
+import org.evosuite.testsuite.TestSuiteChromosome;
 import org.evosuite.utils.LoggingUtils;
 
 public class TestGenerationResultBuilder {
 
-	public static TestGenerationResult buildErrorResult(String errorMessage) {
-		TestGenerationResultImpl result = new TestGenerationResultImpl();
+	public static<T extends Chromosome<T>> TestGenerationResult<T> buildErrorResult(String errorMessage) {
+		TestGenerationResultImpl<T> result = new TestGenerationResultImpl<T>();
 		result.setStatus(Status.ERROR);
 		result.setErrorMessage(errorMessage);
 		getInstance().fillInformationFromConfiguration(result);
@@ -53,8 +56,8 @@ public class TestGenerationResultBuilder {
 		return result;
 	}
 
-	public static TestGenerationResult buildTimeoutResult() {
-		TestGenerationResultImpl result = new TestGenerationResultImpl();
+	public static<T extends Chromosome<T>> TestGenerationResult<T> buildTimeoutResult() {
+		TestGenerationResultImpl<T> result = new TestGenerationResultImpl<T>();
 		result.setStatus(Status.TIMEOUT);
 		getInstance().fillInformationFromConfiguration(result);
 		getInstance().fillInformationFromTestData(result);
@@ -62,8 +65,8 @@ public class TestGenerationResultBuilder {
 		return result;
 	}
 
-	public static TestGenerationResult buildSuccessResult() {
-		TestGenerationResultImpl result = new TestGenerationResultImpl();
+	public static<T extends Chromosome<T>> TestGenerationResult<T> buildSuccessResult() {
+		TestGenerationResultImpl<T> result = new TestGenerationResultImpl<>();
 		result.setStatus(Status.SUCCESS);
 		getInstance().fillInformationFromConfiguration(result);
 		getInstance().fillInformationFromTestData(result);
@@ -80,13 +83,14 @@ public class TestGenerationResultBuilder {
 	public static TestGenerationResultBuilder getInstance() {
 		if(instance == null)
 			instance = new TestGenerationResultBuilder();
-		
+
 		return instance;
 	}
 	
 	private void resetTestData() {
 		code = "";
 		ga = null;
+		dse = null;
 		testCode.clear();
 		testCases.clear();
 		contractViolations.clear();
@@ -95,12 +99,12 @@ public class TestGenerationResultBuilder {
 			uncoveredBranches.add(new BranchInfo(b, true));
 			uncoveredBranches.add(new BranchInfo(b, false));
 		}
-		for(Mutation m : MutationPool.getMutants()) {
+		for(Mutation m : MutationPool.getInstance(TestGenerationContext.getInstance().getClassLoaderForSUT()).getMutants()) {
 			uncoveredMutants.add(new MutationInfo(m));
 		}
 	}
 	
-	private void fillInformationFromConfiguration(TestGenerationResultImpl result) {
+	private void fillInformationFromConfiguration(TestGenerationResultImpl<?> result) {
 		result.setClassUnderTest(Properties.TARGET_CLASS);
 		String[] criteria = new String[Properties.CRITERION.length];
 		for (int i = 0; i < Properties.CRITERION.length; i++)
@@ -108,10 +112,10 @@ public class TestGenerationResultBuilder {
 		result.setTargetCriterion(criteria);
 	}
 	
-	private void fillInformationFromTestData(TestGenerationResultImpl result) {
+	private<T extends Chromosome<T>> void fillInformationFromTestData(TestGenerationResultImpl<T> result) {
 		
-		Set<MutationInfo> exceptionMutants = new LinkedHashSet<MutationInfo>();
-		for(Mutation m : MutationPool.getMutants()) {
+		Set<MutationInfo> exceptionMutants = new LinkedHashSet<>();
+		for(Mutation m : MutationPool.getInstance(TestGenerationContext.getInstance().getClassLoaderForSUT()).getMutants()) {
 			if(MutationTimeoutStoppingCondition.isDisabled(m)) {
 				MutationInfo info = new MutationInfo(m);
 				exceptionMutants.add(info);
@@ -134,7 +138,8 @@ public class TestGenerationResultBuilder {
 		result.setUncoveredMutants(uncoveredMutants);
 		result.setExceptionMutants(exceptionMutants);
 		result.setTestSuiteCode(code);
-		result.setGeneticAlgorithm(ga);
+		result.setGeneticAlgorithm((GeneticAlgorithm<T>) ga);
+		result.setDSEAlgorithm(dse);
         for (Map.Entry<FitnessFunction<?>, Double> e : targetCoverages.entrySet()) {
             result.setTargetCoverage(e.getKey(), e.getValue());
         }
@@ -144,33 +149,35 @@ public class TestGenerationResultBuilder {
 	private String code = "";
 	
 	private GeneticAlgorithm<?> ga = null;
+
+	private ExplorationAlgorithmBase dse = null;
 	
-	private Map<String, String> testCode = new LinkedHashMap<String, String>();
+	private final Map<String, String> testCode = new LinkedHashMap<>();
 
-	private Map<String, TestCase> testCases = new LinkedHashMap<String, TestCase>();
+	private final Map<String, TestCase> testCases = new LinkedHashMap<>();
 	
-	private Map<String, String> testComments = new LinkedHashMap<String, String>();
+	private final Map<String, String> testComments = new LinkedHashMap<>();
 
-	private Map<String, Set<Integer>> testLineCoverage = new LinkedHashMap<String, Set<Integer>>();
+	private final Map<String, Set<Integer>> testLineCoverage = new LinkedHashMap<>();
 
-	private Map<String, Set<BranchInfo>> testBranchCoverage = new LinkedHashMap<String, Set<BranchInfo>>();
+	private final Map<String, Set<BranchInfo>> testBranchCoverage = new LinkedHashMap<>();
 
-	private Map<String, Set<MutationInfo>> testMutantCoverage = new LinkedHashMap<String, Set<MutationInfo>>();
+	private final Map<String, Set<MutationInfo>> testMutantCoverage = new LinkedHashMap<>();
 
-	private Map<String, Set<Failure>> contractViolations = new LinkedHashMap<String, Set<Failure>>();
+	private final Map<String, Set<Failure>> contractViolations = new LinkedHashMap<>();
 	
 	private Set<Integer> uncoveredLines = LinePool.getAllLines();
 	
-	private Set<BranchInfo> uncoveredBranches = new LinkedHashSet<BranchInfo>();
+	private final Set<BranchInfo> uncoveredBranches = new LinkedHashSet<>();
 
-	private Set<MutationInfo> uncoveredMutants = new LinkedHashSet<MutationInfo>();
+	private final Set<MutationInfo> uncoveredMutants = new LinkedHashSet<>();
 
-    private LinkedHashMap<FitnessFunction<?>, Double> targetCoverages = new LinkedHashMap<FitnessFunction<?>, Double>();
+    private final LinkedHashMap<FitnessFunction<?>, Double> targetCoverages = new LinkedHashMap<>();
 	
 	public void setTestCase(String name, String code, TestCase testCase, String comment, ExecutionResult result) {
 		testCode.put(name, code);
 		testCases.put(name, testCase);
-		Set<Failure> failures = new LinkedHashSet<Failure>();
+		Set<Failure> failures = new LinkedHashSet<>();
 		for(ContractViolation violation : testCase.getContractViolations()) {
 			failures.add(new Failure(violation));
 		}
@@ -185,7 +192,7 @@ public class TestGenerationResultBuilder {
 		
 		uncoveredLines.removeAll(result.getTrace().getCoveredLines());
 		
-		Set<BranchInfo> branchCoverage = new LinkedHashSet<BranchInfo>();
+		Set<BranchInfo> branchCoverage = new LinkedHashSet<>();
 		for(int branchId : result.getTrace().getCoveredFalseBranches()) {
 			Branch branch = BranchPool.getInstance(TestGenerationContext.getInstance().getClassLoaderForSUT()).getBranch(branchId);
 			if(branch == null) {
@@ -207,7 +214,7 @@ public class TestGenerationResultBuilder {
 		testBranchCoverage.put(name, branchCoverage);
 		uncoveredBranches.removeAll(branchCoverage);
 		
-		Set<MutationInfo> mutationCoverage = new LinkedHashSet<MutationInfo>();
+		Set<MutationInfo> mutationCoverage = new LinkedHashSet<>();
 		for(Assertion assertion : testCase.getAssertions()) {
 			for(Mutation m : assertion.getKilledMutations()) {
 				mutationCoverage.add(new MutationInfo(m));
@@ -223,7 +230,12 @@ public class TestGenerationResultBuilder {
 	
 	public void setGeneticAlgorithm(GeneticAlgorithm<?> ga) {
 		this.ga = ga;
-        for (Map.Entry<FitnessFunction<?>, Double> e : ga.getBestIndividual().getCoverageValues().entrySet()) {
+		ga.getBestIndividual().getCoverageValues().forEach(targetCoverages::put);
+	}
+
+	public void setDSEAlgorithm(ExplorationAlgorithmBase dse) {
+		this.dse = dse;
+        for (Map.Entry<FitnessFunction<TestSuiteChromosome>, Double> e : dse.getGeneratedTestSuite().getCoverageValues().entrySet()) {
             targetCoverages.put(e.getKey(), e.getValue());
         }
 	}

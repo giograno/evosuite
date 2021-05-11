@@ -1,12 +1,8 @@
 package org.evosuite.performance.indicator;
 
-import org.evosuite.ga.Chromosome;
 import org.evosuite.performance.AbstractIndicator;
 import org.evosuite.testcase.TestChromosome;
 import org.evosuite.testcase.execution.ExecutionResult;
-import org.evosuite.testsuite.TestSuiteChromosome;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.Map;
 
@@ -20,21 +16,16 @@ import java.util.Map;
  */
 public class CoveredMethodCallCounter extends AbstractIndicator {
 
-    private static final Logger logger = LoggerFactory.getLogger(CoveredMethodCallCounter.class);
     private static final String INDICATOR_NAME = CoveredMethodCallCounter.class.getName();
 
     @Override
-    public double getIndicatorValue(Chromosome test) {
-        if (test instanceof TestSuiteChromosome)
-            throw new IllegalArgumentException("This indicator work at test case level");
-
+    public double getIndicatorValue(TestChromosome test) {
         // get the latest execution results
-        TestChromosome tch = (TestChromosome) test;
         //we take the information of the last execution results, stored in each chromosome
-        ExecutionResult results = tch.getLastExecutionResult();
+        ExecutionResult results = test.getLastExecutionResult();
 
         // if the test has already its indicator values, we don't need to re-compute them
-        if (test.getIndicatorValues().keySet().contains(INDICATOR_NAME))
+        if (test.getIndicatorValues().containsKey(INDICATOR_NAME))
             return test.getIndicatorValue(INDICATOR_NAME);
 
         Map<String, Integer> executedMethods = results.getTrace().getMethodExecutionCount();

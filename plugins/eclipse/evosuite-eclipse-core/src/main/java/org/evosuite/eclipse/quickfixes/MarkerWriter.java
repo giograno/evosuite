@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (C) 2010-2018 Gordon Fraser, Andrea Arcuri and EvoSuite
  * contributors
  *
@@ -51,11 +51,11 @@ import org.evosuite.eclipse.Activator;
 
 public class MarkerWriter {
 	private final IResource res;
-	private final TestGenerationResult tgr;
+	private final TestGenerationResult<?> tgr;
 	private final ClassMethodVisitor testM;
 	private final ClassMethodVisitor raw;
 
-	private MarkerWriter(IResource res, TestGenerationResult tgr) {
+	private MarkerWriter(IResource res, TestGenerationResult<?> tgr) {
 		this.res = res;
 		this.tgr = tgr;
 		testM = new ClassMethodVisitor();

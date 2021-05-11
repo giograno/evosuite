@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (C) 2010-2018 Gordon Fraser, Andrea Arcuri and EvoSuite
  * contributors
  *
@@ -19,8 +19,6 @@
  */
 package org.evosuite.statistics;
 
-import java.util.*;
-
 import org.evosuite.Properties;
 import org.evosuite.TestGenerationContext;
 import org.evosuite.coverage.branch.Branch;
@@ -37,6 +35,8 @@ import org.evosuite.testcase.execution.ExecutionTrace;
 import org.evosuite.testcase.execution.TestCaseExecutor;
 import org.evosuite.testsuite.TestSuiteChromosome;
 import org.evosuite.utils.LoggingUtils;
+
+import java.util.*;
 
 /**
  * Class responsible to send "individuals" from Client to Master process.
@@ -57,15 +57,14 @@ public class StatisticsSender {
 	 * 
 	 * @param individual
 	 */
-	public static void sendIndividualToMaster(Chromosome individual) throws IllegalArgumentException{
+	public static <T extends Chromosome<T>> void sendIndividualToMaster(T individual) throws IllegalArgumentException{
 		if(individual == null){
 			throw new IllegalArgumentException("No defined individual to send");
 		}
 		if(!Properties.NEW_STATISTICS)
 			return;
 
-		ClientServices.getInstance().getClientNode().updateStatistics(individual);
-
+		ClientServices.<T>getInstance().getClientNode().updateStatistics(individual);
 	}
 
 
@@ -149,7 +148,7 @@ public class StatisticsSender {
 		for (ExecutionResult res : testSuite.getLastExecutionResults())
 			executionTime += res.getExecutionTime();
 
-		Set<FitnessFunction<?>> ffs = testSuite.getFitnessValues().keySet();
+		Set<FitnessFunction<TestSuiteChromosome>> ffs = testSuite.getFitnessValues().keySet();
 		for (int i = 0; i<Properties.NUM_TEST_RUNS -1; i++){
 			testSuite.setChanged(true);
 			for (TestChromosome test : chromosomes) {
@@ -209,13 +208,11 @@ public class StatisticsSender {
 
 	private static void sendCoveredInfo(TestSuiteChromosome testSuite){
 
-		Set<String> coveredMethods = new HashSet<String>();
-		Set<Integer> coveredTrueBranches = new HashSet<Integer>();
-		Set<Integer> coveredFalseBranches = new HashSet<Integer>();
-		Set<String> coveredBranchlessMethods = new HashSet<String>();
-		Set<Integer> coveredLines = new HashSet<Integer>();
-		Set<Integer> coveredRealBranches = new HashSet<Integer>();
-		Set<Integer> coveredInstrumentedBranches = new HashSet<Integer>();
+		Set<String> coveredMethods = new HashSet<>();
+		Set<Integer> coveredTrueBranches = new HashSet<>();
+		Set<Integer> coveredFalseBranches = new HashSet<>();
+		Set<String> coveredBranchlessMethods = new HashSet<>();
+		Set<Integer> coveredLines = new HashSet<>();
 
 		for (TestChromosome test : testSuite.getTestChromosomes()) {
 			ExecutionTrace trace = test.getLastExecutionResult().getTrace();

@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (C) 2010-2018 Gordon Fraser, Andrea Arcuri and EvoSuite
  * contributors
  *
@@ -16,9 +16,6 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with EvoSuite. If not, see <http://www.gnu.org/licenses/>.
- */
-/**
- * 
  */
 package org.evosuite.coverage.mutation;
 
@@ -149,12 +146,12 @@ public class StrongMutationTestFitness extends MutationTestFitness {
 	private Set<String> getDifference(
 	        Map<String, Map<String, Map<Integer, Integer>>> orig,
 	        Map<String, Map<String, Map<Integer, Integer>>> mutant) {
-		Map<String, Set<String>> handled = new HashMap<String, Set<String>>();
-		Set<String> differ = new HashSet<String>();
+		Map<String, Set<String>> handled = new HashMap<>();
+		Set<String> differ = new HashSet<>();
 
 		for (Entry<String, Map<String, Map<Integer, Integer>>> entry : orig.entrySet()) {
 			if (!handled.containsKey(entry.getKey()))
-				handled.put(entry.getKey(), new HashSet<String>());
+				handled.put(entry.getKey(), new HashSet<>());
 
 			for (Entry<String, Map<Integer, Integer>> method_entry : entry.getValue().entrySet()) {
 				if (!mutant.containsKey(entry.getKey())) {
@@ -254,7 +251,6 @@ public class StrongMutationTestFitness extends MutationTestFitness {
 		return normalize(coverage_impact) + normalize(data_impact) + branch_impact;
 	}
 
-	@SuppressWarnings({ "rawtypes", "unchecked" })
 	private int getNumAssertions(ExecutionResult origResult,
 	        ExecutionResult mutant_result) {
 		int num = 0;
@@ -264,12 +260,12 @@ public class StrongMutationTestFitness extends MutationTestFitness {
 		}
 
 		for (Class<?> observerClass : observerClasses) {
-			OutputTrace trace = mutant_result.getTrace(observerClass);
-			OutputTrace orig = origResult.getTrace(observerClass);
+			OutputTrace<?> trace = mutant_result.getTrace(observerClass);
+			OutputTrace<?> orig = origResult.getTrace(observerClass);
 
 			if (orig == null) {
 				String msg = "No trace for " + observerClass + ". Traces: ";
-				for (OutputTrace t : origResult.getTraces())
+				for (OutputTrace<?> t : origResult.getTraces())
 					msg += " " + t.toString();
 				logger.error(msg);
 			} else {
@@ -391,7 +387,7 @@ public class StrongMutationTestFitness extends MutationTestFitness {
 		//	                         individual.getLastExecutionResult(mutation)) > 0);
 		//}
 
-		updateIndividual(this, individual, fitness);
+		updateIndividual(individual, fitness);
 		if (fitness == 0.0) {
 			individual.getTestCase().addCoveredGoal(this);
 			//assert(isCovered(individual, result));

@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (C) 2010-2018 Gordon Fraser, Andrea Arcuri and EvoSuite
  * contributors
  *
@@ -31,8 +31,6 @@ import org.junit.Test;
 import com.examples.with.different.packagename.mock.java.lang.HookWithBranch;
 import com.examples.with.different.packagename.mock.java.lang.MemorySum;
 
-import java.util.ArrayList;
-
 public class MockRuntimeSystemTest extends SystemTestBase {
 
 	@Test
@@ -41,7 +39,7 @@ public class MockRuntimeSystemTest extends SystemTestBase {
 
 		Properties.TARGET_CLASS = targetClass;		
 		Properties.JUNIT_TESTS = true;
-		Properties.JUNIT_CHECK = true;
+		Properties.JUNIT_CHECK = Properties.JUnitCheckValues.TRUE;
 		Properties.REPLACE_CALLS = true;
 		Properties.OUTPUT_VARIABLES=""+RuntimeVariable.HadUnstableTests;
 		
@@ -49,8 +47,8 @@ public class MockRuntimeSystemTest extends SystemTestBase {
 		String[] command = new String[] { "-generateSuite", "-class", targetClass };
 		Object result = evosuite.parseCommandLine(command);
 
-		GeneticAlgorithm<?> ga = getGAFromResult(result);
-		TestSuiteChromosome best = (TestSuiteChromosome) ga.getBestIndividual();
+		GeneticAlgorithm<TestSuiteChromosome> ga = getGAFromResult(result);
+		TestSuiteChromosome best = ga.getBestIndividual();
 		Assert.assertNotNull(best);
 		Assert.assertEquals("Non-optimal coverage: ", 1d, best.getCoverage(), 0.001);
 
@@ -63,7 +61,7 @@ public class MockRuntimeSystemTest extends SystemTestBase {
 
 		Properties.TARGET_CLASS = targetClass;		
 		Properties.JUNIT_TESTS = true;
-		Properties.JUNIT_CHECK = true;
+		Properties.JUNIT_CHECK = Properties.JUnitCheckValues.TRUE;
 		Properties.REPLACE_CALLS = true;
 		Properties.OUTPUT_VARIABLES=""+RuntimeVariable.HadUnstableTests;
 		Properties.MINIMIZE=true;
@@ -73,8 +71,8 @@ public class MockRuntimeSystemTest extends SystemTestBase {
 		String[] command = new String[] { "-generateSuite", "-class", targetClass};
 		Object result = evosuite.parseCommandLine(command);
 
-		GeneticAlgorithm<?> ga = getGAFromResult(result);
-		TestSuiteChromosome best = (TestSuiteChromosome) ga.getBestIndividual();
+		GeneticAlgorithm<TestSuiteChromosome> ga = getGAFromResult(result);
+		TestSuiteChromosome best = ga.getBestIndividual();
 		Assert.assertNotNull(best);
 
 		Assert.assertTrue("Non-optimal coverage: ", best.getCoverage() >= 0.8);

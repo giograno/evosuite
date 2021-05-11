@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (C) 2010-2018 Gordon Fraser, Andrea Arcuri and EvoSuite
  * contributors
  *
@@ -19,20 +19,19 @@
  */
 package org.evosuite.coverage.io.input;
 
-import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
 import org.evosuite.Properties;
 import org.evosuite.ga.archive.Archive;
-import org.evosuite.testcase.ExecutableChromosome;
 import org.evosuite.testcase.TestChromosome;
 import org.evosuite.testcase.TestFitnessFunction;
 import org.evosuite.testcase.execution.ExecutionResult;
 import org.evosuite.testcase.execution.TestCaseExecutor;
-import org.evosuite.testsuite.AbstractTestSuiteChromosome;
+import org.evosuite.testsuite.TestSuiteChromosome;
 import org.evosuite.testsuite.TestSuiteFitnessFunction;
 
 /**
@@ -83,7 +82,7 @@ public class InputCoverageSuiteFitness extends TestSuiteFitnessFunction {
      * Execute all tests and count covered input goals
      */
     @Override
-    public double getFitness(AbstractTestSuiteChromosome<? extends ExecutableChromosome> suite) {
+    public double getFitness(TestSuiteChromosome suite) {
         logger.trace("Calculating test suite fitness");
         double fitness = 0.0;
 
@@ -114,7 +113,7 @@ public class InputCoverageSuiteFitness extends TestSuiteFitnessFunction {
         suite.setNumOfCoveredGoals(this, coveredGoals);
 
         printStatusMessages(suite, coveredGoals, fitness);
-        updateIndividual(this, suite, fitness);
+        updateIndividual(suite, fitness);
 
         assert (coveredGoals <= totalGoals) : "Covered " + coveredGoals + " vs total goals " + totalGoals;
         assert (fitness >= 0.0);
@@ -148,7 +147,7 @@ public class InputCoverageSuiteFitness extends TestSuiteFitnessFunction {
 
     private double computeDistance(List<ExecutionResult> results, Set<TestFitnessFunction> setOfCoveredGoals) {
 
-        Map<InputCoverageTestFitness, Double> mapDistances = new LinkedHashMap<InputCoverageTestFitness, Double>();
+        Map<InputCoverageTestFitness, Double> mapDistances = new LinkedHashMap<>();
         for (InputCoverageTestFitness testFitness : this.inputCoverageMap) {
             mapDistances.put(testFitness, 1.0);
         }
@@ -163,10 +162,7 @@ public class InputCoverageSuiteFitness extends TestSuiteFitnessFunction {
             test.setLastExecutionResult(result);
             test.setChanged(false);
 
-            Iterator<InputCoverageTestFitness> it = this.inputCoverageMap.iterator();
-            while (it.hasNext()) {
-                InputCoverageTestFitness testFitness = it.next();
-
+            for (final InputCoverageTestFitness testFitness : this.inputCoverageMap) {
                 if (!mapDistances.containsKey(testFitness)) {
                     continue;
                 }
@@ -183,11 +179,7 @@ public class InputCoverageSuiteFitness extends TestSuiteFitnessFunction {
             }
         }
 
-        double distance = 0.0;
-        if (!mapDistances.isEmpty()) {
-            distance = mapDistances.values().stream().reduce(Double::sum).get().doubleValue();
-        }
-        return distance;
+        return mapDistances.values().stream().mapToDouble(Double::doubleValue).sum();
     }
 
     /**
@@ -196,9 +188,7 @@ public class InputCoverageSuiteFitness extends TestSuiteFitnessFunction {
      * @param coveredGoals
      * @param fitness
      */
-    private void printStatusMessages(
-            AbstractTestSuiteChromosome<? extends ExecutableChromosome> suite,
-            int coveredGoals, double fitness) {
+    private void printStatusMessages(TestSuiteChromosome suite, int coveredGoals, double fitness) {
         if (coveredGoals > maxCoveredGoals) {
             logger.info("(Input Goals) Best individual covers " + coveredGoals + "/"
                     + totalGoals + " input goals");

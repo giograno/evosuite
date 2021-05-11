@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (C) 2010-2018 Gordon Fraser, Andrea Arcuri and EvoSuite
  * contributors
  *
@@ -28,6 +28,7 @@ import org.evosuite.runtime.annotation.EvoSuiteExclude;
 import org.evosuite.runtime.classhandling.ClassResetter;
 import org.evosuite.runtime.mock.MockList;
 import org.evosuite.runtime.util.AtMostOnceLogger;
+import org.evosuite.utils.Java9InvisiblePackage;
 import org.evosuite.utils.LoggingUtils;
 import org.junit.After;
 import org.junit.AfterClass;
@@ -45,18 +46,14 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.ParameterizedType;
 import java.text.MessageFormat;
-import java.util.Arrays;
-import java.util.Calendar;
-import java.util.Date;
-import java.util.Locale;
-import java.util.Random;
+import java.util.*;
 
 /**
  * Created by Andrea Arcuri on 30/06/15.
  */
 public class TestUsageChecker {
 
-	private static Logger logger = LoggerFactory.getLogger(TestUsageChecker.class);
+	private static final Logger logger = LoggerFactory.getLogger(TestUsageChecker.class);
 
 	public static boolean canUse(Constructor<?> c) {
 
@@ -167,8 +164,13 @@ public class TestUsageChecker {
             return false;
         }
 
-        if (c.getName().startsWith("junit"))
+        if(isClassIncludedInPackage(c.getName(), Java9InvisiblePackage.instance.getClassesToBeIgnored())){
             return false;
+        }
+
+        if (c.getName().startsWith("junit")) {
+            return false;
+        }
 
         if (TestClusterUtils.isEvoSuiteClass(c) && !MockList.isAMockClass(c.getCanonicalName())) {
             return false;
@@ -353,6 +355,16 @@ public class TestUsageChecker {
             return false;
         }
 
+        // FIXME: EvoSuite currently can't deal properly with the Map.of(...) methods introduced in Java 9
+        if(m.getDeclaringClass().equals(java.util.Map.class) && Modifier.isStatic(m.getModifiers())) {
+            return false;
+        }
+
+        // FIXME: EvoSuite currently can't deal properly with the Set.of(...) methods introduced in Java 9
+        if(m.getDeclaringClass().equals(java.util.Set.class) && Modifier.isStatic(m.getModifiers())) {
+            return false;
+        }
+
         if (!m.getReturnType().equals(String.class) && (!canUse(m.getReturnType()) || !canUse(m.getGenericReturnType()))) {
             return false;
         }
@@ -526,5 +538,13 @@ public class TestUsageChecker {
 
 		return false;
 	}
+
+    private static boolean isClassIncludedInPackage(String className, List<String> classList) {
+        String result = classList.stream()
+                .filter(class1 -> className.startsWith(class1))
+                .findAny()
+                .orElse(null);
+        return result != null ? true : false;
+    }
 
 }

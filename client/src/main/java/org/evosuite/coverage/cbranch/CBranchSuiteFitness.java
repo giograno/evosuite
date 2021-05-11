@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (C) 2010-2018 Gordon Fraser, Andrea Arcuri and EvoSuite
  * contributors
  *
@@ -17,9 +17,6 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with EvoSuite. If not, see <http://www.gnu.org/licenses/>.
  */
-/**
- * 
- */
 package org.evosuite.coverage.cbranch;
 
 import java.util.LinkedHashMap;
@@ -32,10 +29,9 @@ import java.util.Set;
 import org.evosuite.Properties;
 import org.evosuite.ga.archive.Archive;
 import org.evosuite.setup.CallContext;
-import org.evosuite.testcase.ExecutableChromosome;
 import org.evosuite.testcase.TestChromosome;
 import org.evosuite.testcase.execution.ExecutionResult;
-import org.evosuite.testsuite.AbstractTestSuiteChromosome;
+import org.evosuite.testsuite.TestSuiteChromosome;
 import org.evosuite.testsuite.TestSuiteFitnessFunction;
 
 /**
@@ -167,7 +163,7 @@ public class CBranchSuiteFitness extends TestSuiteFitnessFunction {
 	 * org.evosuite.ga.FitnessFunction#getFitness(org.evosuite.ga.Chromosome)
 	 */
 	@Override
-	public double getFitness(AbstractTestSuiteChromosome<? extends ExecutableChromosome> suite) {
+	public double getFitness(TestSuiteChromosome suite) {
 		double fitness = 0.0; // branchFitness.getFitness(suite);
 
 		List<ExecutionResult> results = runTestSuite(suite);
@@ -256,8 +252,7 @@ public class CBranchSuiteFitness extends TestSuiteFitnessFunction {
 									|| branchCounter.get(goalF.getGenericContextBranchIdentifier()) < count) {
 								branchCounter.put(goalF.getGenericContextBranchIdentifier(), count);
 							}
-						} else
-							continue;
+						}
 					}
 				}
 			}
@@ -323,7 +318,7 @@ public class CBranchSuiteFitness extends TestSuiteFitnessFunction {
 		}
 		suite.setNumOfCoveredGoals(this, numCoveredGoals);
 		suite.setNumOfNotCoveredGoals(this, branchGoals.size() - numCoveredGoals);
-		updateIndividual(this, suite, fitness);
+		updateIndividual(suite, fitness);
 
 		return fitness;
 	}
@@ -334,9 +329,7 @@ public class CBranchSuiteFitness extends TestSuiteFitnessFunction {
 			return false;
 		}
 
-		for (CBranchTestFitness goal : this.toRemoveGoals) {
-			this.removedGoals.add(goal);
-		}
+		this.removedGoals.addAll(this.toRemoveGoals);
 
 		this.toRemoveGoals.clear();
 		logger.info("Current state of archive: " + Archive.getArchiveInstance().toString());

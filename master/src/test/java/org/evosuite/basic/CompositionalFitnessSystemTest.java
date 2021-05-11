@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (C) 2010-2018 Gordon Fraser, Andrea Arcuri and EvoSuite
  * contributors
  *
@@ -17,9 +17,7 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with EvoSuite. If not, see <http://www.gnu.org/licenses/>.
  */
-/**
- *
- */
+
 package org.evosuite.basic;
 
 import static org.junit.Assert.assertEquals;
@@ -90,14 +88,14 @@ public class CompositionalFitnessSystemTest extends SystemTestBase {
 
         Object result = evosuite.parseCommandLine(command);
 
-        GeneticAlgorithm<?> ga = getGAFromResult(result);
-        TestSuiteChromosome best = (TestSuiteChromosome) ga.getBestIndividual();
+        GeneticAlgorithm<TestSuiteChromosome> ga = getGAFromResult(result);
+        TestSuiteChromosome best = ga.getBestIndividual();
         System.out.println("EvolvedTestSuite:\n" + best);
 
-        Map<FitnessFunction<?>, Double> fitnesses = best.getFitnessValues();
+        Map<FitnessFunction<TestSuiteChromosome>, Double> fitnesses = best.getFitnessValues();
         double sum = 0.0;
         double cov = 0.0;
-        for (FitnessFunction<?> fitness : fitnesses.keySet()) {
+        for (FitnessFunction<TestSuiteChromosome> fitness : fitnesses.keySet()) {
             sum += fitnesses.get(fitness);
             cov += best.getCoverage(fitness);
             assert (fitnesses.get(fitness) == best.getFitness(fitness));
@@ -125,8 +123,8 @@ public class CompositionalFitnessSystemTest extends SystemTestBase {
 
         Object result = evosuite.parseCommandLine(command);
 
-        GeneticAlgorithm<?> ga = getGAFromResult(result);
-        TestSuiteChromosome best = (TestSuiteChromosome) ga.getBestIndividual();
+        GeneticAlgorithm<TestSuiteChromosome> ga = getGAFromResult(result);
+        TestSuiteChromosome best = ga.getBestIndividual();
         System.out.println("EvolvedTestSuite:\n" + best);
 
         Assert.assertEquals("Non-optimal coverage: ", 1d, best.getCoverage(), 0.001);
@@ -168,6 +166,7 @@ public class CompositionalFitnessSystemTest extends SystemTestBase {
     @Test
     public void testCompositionalGetFitnessForSeveralFunctions() {
         Properties.TARGET_CLASS = Compositional.class.getCanonicalName();
+        Properties.TEST_ARCHIVE = false; // Otherwise archive complains that the target criterion is not correct
 
         TestSuiteChromosome c = new TestSuiteChromosome();
         MethodTraceCoverageSuiteFitness f1 = new MethodTraceCoverageSuiteFitness();

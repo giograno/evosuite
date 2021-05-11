@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (C) 2010-2018 Gordon Fraser, Andrea Arcuri and EvoSuite
  * contributors
  *
@@ -31,10 +31,9 @@ import org.evosuite.rmi.ClientServices;
 import org.evosuite.setup.Call;
 import org.evosuite.setup.CallContext;
 import org.evosuite.statistics.RuntimeVariable;
-import org.evosuite.testcase.ExecutableChromosome;
 import org.evosuite.testcase.TestChromosome;
 import org.evosuite.testcase.execution.ExecutionResult;
-import org.evosuite.testsuite.AbstractTestSuiteChromosome;
+import org.evosuite.testsuite.TestSuiteChromosome;
 import org.evosuite.testsuite.TestSuiteFitnessFunction;
 
 /**
@@ -77,21 +76,15 @@ public class IBranchSuiteFitness extends TestSuiteFitnessFunction {
 			if (goal.getBranchGoal() != null && goal.getBranchGoal().getBranch() != null) {
 				int branchId = goal.getBranchGoal().getBranch().getActualBranchId();
 
-				Map<CallContext, Set<IBranchTestFitness>> innermap = goalsMap.get(branchId);
-				if (innermap == null) {
-					goalsMap.put(branchId, innermap = new LinkedHashMap<>());
-				}
-				Set<IBranchTestFitness> tempInSet = innermap.get(goal.getContext());
-				if (tempInSet == null) {
-					innermap.put(goal.getContext(), tempInSet = new LinkedHashSet<>());
-				}
+				Map<CallContext, Set<IBranchTestFitness>> innermap =
+						goalsMap.computeIfAbsent(branchId, k -> new LinkedHashMap<>());
+				Set<IBranchTestFitness> tempInSet =
+						innermap.computeIfAbsent(goal.getContext(), k -> new LinkedHashSet<>());
 				tempInSet.add(goal);
 			} else {
 				String methodName = goal.getTargetClass() + "." + goal.getTargetMethod();
-				Map<CallContext, IBranchTestFitness> innermap = methodsMap.get(methodName);
-				if (innermap == null) {
-					methodsMap.put(methodName, innermap = new LinkedHashMap<>());
-				}
+				Map<CallContext, IBranchTestFitness> innermap =
+						methodsMap.computeIfAbsent(methodName, k -> new LinkedHashMap<>());
 				innermap.put(goal.getContext(), goal);
 			}
 			if (Properties.TEST_ARCHIVE) {
@@ -146,7 +139,7 @@ public class IBranchSuiteFitness extends TestSuiteFitnessFunction {
 		return null;
 	}
 
-	public double getFitness(AbstractTestSuiteChromosome<? extends ExecutableChromosome> suite, boolean updateChromosome) {
+	public double getFitness(TestSuiteChromosome suite, boolean updateChromosome) {
 		double fitness = 0.0; // branchFitness.getFitness(suite);
 		List<ExecutionResult> results = runTestSuite(suite);
 
@@ -260,7 +253,7 @@ public class IBranchSuiteFitness extends TestSuiteFitnessFunction {
 			}
 			suite.setNumOfCoveredGoals(this, numCoveredGoals);
 			suite.setNumOfNotCoveredGoals(this, totGoals - numCoveredGoals);
-			updateIndividual(this, suite, fitness);
+			updateIndividual(suite, fitness);
 		}
 		return fitness;
 	}	
@@ -272,7 +265,7 @@ public class IBranchSuiteFitness extends TestSuiteFitnessFunction {
 	 * org.evosuite.ga.FitnessFunction#getFitness(org.evosuite.ga.Chromosome)
 	 */
 	@Override
-	public double getFitness(AbstractTestSuiteChromosome<? extends ExecutableChromosome> suite) {
+	public double getFitness(TestSuiteChromosome suite) {
 		return getFitness(suite, true);
 	}
 

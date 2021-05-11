@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (C) 2010-2018 Gordon Fraser, Andrea Arcuri and EvoSuite
  * contributors
  *
@@ -50,18 +50,21 @@ import java.util.concurrent.CopyOnWriteArraySet;
 
 public class TestGeneration {
 
-	private static Logger logger = LoggerFactory.getLogger(TestGeneration.class);
+	private static final Logger logger = LoggerFactory.getLogger(TestGeneration.class);
 	
 	public static List<List<TestGenerationResult>> executeTestGeneration(Options options, List<String> javaOpts,
 			CommandLine line) {
 		
 		Strategy strategy = getChosenStrategy(javaOpts, line);
 
+		/** Updating properties strategy */
+		Properties.STRATEGY = strategy;
+
 		if (strategy == null) {
-			strategy = Strategy.EVOSUITE;
+			strategy = Strategy.MOSUITE;
 		} 
 
-		List<List<TestGenerationResult>> results = new ArrayList<List<TestGenerationResult>>();
+        List<List<TestGenerationResult>> results = new ArrayList<>();
 
 		if(line.getOptions().length == 0) {
             Help.execute(options);
@@ -97,8 +100,8 @@ public class TestGeneration {
 
 	private static List<List<TestGenerationResult>> generateTestsLegacy(Properties.Strategy strategy,
 	        List<String> args) {
-	    List<List<TestGenerationResult>> results = new ArrayList<List<TestGenerationResult>>();
-		
+        List<List<TestGenerationResult>> results = new ArrayList<>();
+
 		ClassPathHandler.getInstance().getTargetProjectClasspath();
 		LoggingUtils.getEvoLogger().info("* Using .task files in "
 		                                         + Properties.OUTPUT_DIR
@@ -117,9 +120,7 @@ public class TestGeneration {
 				new Option("generateSuite", "use whole suite generation. This is the default behavior"),
 				new Option("generateTests", "use individual test generation (old approach for reference purposes)"),
 				new Option("generateRandom", "use random test generation"),
-				new Option("generateNumRandom",true, "generate fixed number of random tests"),	
-				new Option("regressionSuite", "generate a regression test suite"),
-				new Option("regressionTests", "generate a regression test suite of individual tests"),
+				new Option("generateNumRandom",true, "generate fixed number of random tests"),
 				new Option("generateMOSuite", "use many objective test generation (MOSA). "),
 				new Option("generateSuiteUsingDSE", "use Dynamic Symbolic Execution to generate test suite")
 		};
@@ -134,14 +135,15 @@ public class TestGeneration {
 		} else if(javaOpts.contains("-Dstrategy="+Strategy.NOVELTY.name())) {
 			// TODO: Find a better way to integrate this
 			strategy = Strategy.NOVELTY;
-		} else if (line.hasOption("generateTests")) {
+		} else if(javaOpts.contains("-Dstrategy="+Strategy.MAP_ELITES.name())) {
+          // TODO: Find a better way to integrate this
+          strategy = Strategy.MAP_ELITES;
+        } else if (line.hasOption("generateTests")) {
 			strategy = Strategy.ONEBRANCH;
 		} else if (line.hasOption("generateSuite")) {
 			strategy = Strategy.EVOSUITE;
 		} else if (line.hasOption("generateRandom")) {
 			strategy = Strategy.RANDOM;
-		} else if (line.hasOption("regressionSuite")) {
-			strategy = Strategy.REGRESSION;
 		} else if (line.hasOption("generateNumRandom")) {
 			strategy = Strategy.RANDOM_FIXED;
 			javaOpts.add("-Dnum_random_tests="
@@ -156,11 +158,11 @@ public class TestGeneration {
 	
 	private static List<List<TestGenerationResult>> generateTestsPrefix(Properties.Strategy strategy, String prefix,
 	        List<String> args) {
-	    List<List<TestGenerationResult>> results = new ArrayList<List<TestGenerationResult>>();
-		
+        List<List<TestGenerationResult>> results = new ArrayList<>();
+
 		String cp = ClassPathHandler.getInstance().getTargetProjectClasspath();
-		Set<String> classes = new HashSet<String>();
-		
+        Set<String> classes = new HashSet<>();
+
 		for (String classPathElement : cp.split(File.pathSeparator)) {
 			classes.addAll(ResourceList.getInstance(TestGenerationContext.getInstance().getClassLoaderForSUT()).getAllClasses(classPathElement, prefix, false));
 			try {
@@ -215,7 +217,8 @@ public class TestGeneration {
 		LoggingUtils.getEvoLogger().info("* Going to generate test cases for class: "+target);
 		
 		if (!findTargetClass(target)) {
-		    return Arrays.asList(Arrays.asList(new TestGenerationResult[]{TestGenerationResultBuilder.buildErrorResult("Could not find target class") }));
+			final TestGenerationResult result = TestGenerationResultBuilder.buildErrorResult("Could not find target class");
+			return Collections.singletonList(Collections.singletonList(result));
 		}
 
 
@@ -255,7 +258,7 @@ public class TestGeneration {
 
 		cmdLine.add("-Dprocess_communication_port=" + port);
 		cmdLine.add("-Dinline=true");
-		if(Properties.HEADLESS_MODE == true) {
+        if (Properties.HEADLESS_MODE) {
 			cmdLine.add("-Djava.awt.headless=true");
 		}
 		cmdLine.add("-Dlogback.configurationFile="+LoggingUtils.getLogbackFileName());
@@ -325,9 +328,6 @@ public class TestGeneration {
 		case RANDOM_FIXED:
 			cmdLine.add("-Dstrategy=Random_Fixed");
 			break;
-		case REGRESSION:
-			cmdLine.add("-Dstrategy=Regression");
-			break;
 		case ENTBUG:
 			cmdLine.add("-Dstrategy=EntBug");
 			break;
@@ -351,7 +351,7 @@ public class TestGeneration {
 			}
 
 			if(!algorithmSet) {
-				cmdLine.add("-Dalgorithm=MOSA");
+				cmdLine.add("-Dalgorithm=DYNAMOSA");
 			}
 			break;
 		case DSE:
@@ -360,6 +360,9 @@ public class TestGeneration {
 		case NOVELTY:
 			cmdLine.add("-Dstrategy=Novelty");
 			break;
+		case MAP_ELITES:
+		  cmdLine.add("-Dstrategy=MAP_ELITES");
+          break;
 		default:
 			throw new RuntimeException("Unsupported strategy: " + strategy);
 		}
@@ -490,7 +493,7 @@ public class TestGeneration {
 			Set<ClientNodeRemote> clients = null;
 			try {
 				//FIXME: timeout here should be handled by TimeController
-				clients = new CopyOnWriteArraySet<ClientNodeRemote>(MasterServices.getInstance().getMasterNode()
+                clients = new CopyOnWriteArraySet<>(MasterServices.getInstance().getMasterNode()
                         .getClientsOnceAllConnected(60000).values());
 			} catch (InterruptedException e) {
 			}
@@ -528,18 +531,8 @@ public class TestGeneration {
 			LoggingUtils.getEvoLogger().info("* Could not connect to client process");
 		}
 
-		boolean hasFailed = false;
-		
-		if (Properties.NEW_STATISTICS) {
-			if(MasterServices.getInstance().getMasterNode() == null) {
-				logger.error("Cannot write results as RMI master node is not running");
-				hasFailed = true;
-			} else {
-				boolean written = SearchStatistics.getInstance().writeStatistics();
-				hasFailed = !written;
-			}
-		}
-		
+		boolean hasFailed = writeStatistics();
+
 		/*
 		 * FIXME: it is unclear what is the relation between TestGenerationResult and writeStatistics()
 		 */
@@ -567,10 +560,30 @@ public class TestGeneration {
 		if(hasFailed){
 			logger.error("failed to write statistics data");
 			//note: cannot throw exception because would require refactoring of many SystemTests
-			return new ArrayList<List<TestGenerationResult>>();
+            return new ArrayList<>();
 		}
 		
 		return results;
+	}
+
+	/**
+	 * Writes generation statistics.
+	 *
+	 * @return
+	 */
+	private static boolean writeStatistics() {
+		boolean hasFailed = false;
+
+		if (Properties.NEW_STATISTICS) {
+			if(MasterServices.getInstance().getMasterNode() == null) {
+				logger.error("Cannot write results as RMI master node is not running");
+				hasFailed = true;
+			} else {
+				boolean written = SearchStatistics.getInstance().writeStatistics();
+				hasFailed = !written;
+			}
+		}
+		return hasFailed;
 	}
 
 	private static void handleClassPath(List<String> cmdLine) {
@@ -601,7 +614,7 @@ public class TestGeneration {
 
 	private static List<List<TestGenerationResult>> generateTestsTarget(Properties.Strategy strategy, String target,
 	        List<String> args) {
-	    List<List<TestGenerationResult>> results = new ArrayList<List<TestGenerationResult>>();
+        List<List<TestGenerationResult>> results = new ArrayList<>();
 		String cp = ClassPathHandler.getInstance().getTargetProjectClasspath();
 		
 		Set<String> classes = ResourceList.getInstance(TestGenerationContext.getInstance().getClassLoaderForSUT()).getAllClasses(target, false);

@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (C) 2010-2018 Gordon Fraser, Andrea Arcuri and EvoSuite
  * contributors
  *
@@ -20,7 +20,6 @@
 package org.evosuite.assertion.stable;
 
 import com.examples.with.different.packagename.assertion.DoubleWrapperExample;
-import com.examples.with.different.packagename.stable.CloneMe;
 import org.evosuite.EvoSuite;
 import org.evosuite.Properties;
 import org.evosuite.SystemTestBase;
@@ -41,7 +40,7 @@ import static org.junit.Assert.assertTrue;
 public class DoubleValuesSystemTest extends SystemTestBase {
 
     private final boolean DEFAULT_RESET_STATIC_FIELDS = Properties.RESET_STATIC_FIELDS;
-    private final boolean DEFAULT_JUNIT_CHECK = Properties.JUNIT_CHECK;
+    private final Properties.JUnitCheckValues DEFAULT_JUNIT_CHECK = Properties.JUNIT_CHECK;
     private final boolean DEFAULT_JUNIT_TESTS = Properties.JUNIT_TESTS;
     private final boolean DEFAULT_PURE_INSPECTORS = Properties.PURE_INSPECTORS;
     private final boolean DEFAULT_JUNIT_CHECK_ON_SEPARATE_PROCESS = Properties.JUNIT_CHECK_ON_SEPARATE_PROCESS;
@@ -51,7 +50,7 @@ public class DoubleValuesSystemTest extends SystemTestBase {
     public void before() {
         Properties.RESET_STATIC_FIELDS=true;
         Properties.SANDBOX = true;
-        Properties.JUNIT_CHECK = true;
+        Properties.JUNIT_CHECK = Properties.JUnitCheckValues.TRUE;
         Properties.JUNIT_TESTS = true;
         Properties.PURE_INSPECTORS = true;
         Properties.JUNIT_CHECK_ON_SEPARATE_PROCESS = false;

@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (C) 2010-2018 Gordon Fraser, Andrea Arcuri and EvoSuite
  * contributors
  *
@@ -21,7 +21,6 @@ package org.evosuite.testcase.execution;
 
 import java.io.PrintStream;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
@@ -37,7 +36,6 @@ import org.evosuite.ga.stoppingconditions.MaxStatementsStoppingCondition;
 import org.evosuite.ga.stoppingconditions.MaxTestsStoppingCondition;
 import org.evosuite.runtime.LoopCounter;
 import org.evosuite.runtime.Runtime;
-import org.evosuite.runtime.javaee.db.DBManager;
 import org.evosuite.runtime.sandbox.PermissionStatistics;
 import org.evosuite.runtime.sandbox.Sandbox;
 import org.evosuite.runtime.util.JOptionPaneInputs;
@@ -91,7 +89,7 @@ public class TestCaseExecutor implements ThreadFactory {
 
 	private Set<ExecutionObserver> observers;
 
-	private final Set<Thread> stalledThreads = new HashSet<Thread>();
+	private final Set<Thread> stalledThreads = new HashSet<>();
 
 	/** Constant <code>timeExecuted=0</code> */
 	public static long timeExecuted = 0;
@@ -244,7 +242,7 @@ public class TestCaseExecutor implements ThreadFactory {
 	}
 
 	public Set<ExecutionObserver> getExecutionObservers() {
-		return new LinkedHashSet<ExecutionObserver>(observers);
+		return new LinkedHashSet<>(observers);
 	}
 
 	private void resetObservers() {
@@ -304,7 +302,7 @@ public class TestCaseExecutor implements ThreadFactory {
 
 		long startTime = System.currentTimeMillis();
 
-		TimeoutHandler<ExecutionResult> handler = new TimeoutHandler<ExecutionResult>();
+		TimeoutHandler<ExecutionResult> handler = new TimeoutHandler<>();
 
 		// #TODO steenbuck could be nicer (TestRunnable should be an interface
 		TestRunnable callable = new TestRunnable(tc, scope, observers);
@@ -508,9 +506,6 @@ public class TestCaseExecutor implements ThreadFactory {
 			// which can take seconds
 			if (elem.getClassName().equals("sun.font.CFontManager"))
 				return true;
-			// JDBC initialisation can take a while, and interrupting can mess things up
-			if (elem.getClassName().equals(DBManager.class.getCanonicalName()) && elem.getMethodName().equals("initDB"))
-				return true;
 		}
 		return false;
 	}
@@ -523,13 +518,7 @@ public class TestCaseExecutor implements ThreadFactory {
 	 * @return a int.
 	 */
 	public int getNumStalledThreads() {
-		Iterator<Thread> iterator = stalledThreads.iterator();
-		while (iterator.hasNext()) {
-			Thread t = iterator.next();
-			if (!t.isAlive()) {
-				iterator.remove();
-			}
-		}
+		stalledThreads.removeIf(t -> !t.isAlive());
 		return stalledThreads.size();
 	}
 

@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (C) 2010-2018 Gordon Fraser, Andrea Arcuri and EvoSuite
  * contributors
  *
@@ -26,7 +26,6 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
@@ -36,14 +35,8 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.commons.collections.list.SynchronizedList;
-
 import org.evosuite.*;
-import org.evosuite.Properties;
 import org.evosuite.Properties.NoSuchParameterException;
-import org.evosuite.TestGenerationContext;
-import org.evosuite.TestSuiteGenerator;
-import org.evosuite.TimeController;
 import org.evosuite.classpath.ClassPathHandler;
 import org.evosuite.coverage.ClassStatisticsPrinter;
 import org.evosuite.ga.Chromosome;
@@ -63,9 +56,11 @@ import org.evosuite.utils.FileIOUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class ClientNodeImpl implements ClientNodeLocal, ClientNodeRemote {
+public class ClientNodeImpl<T extends Chromosome<T>>
+		implements ClientNodeLocal<T>, ClientNodeRemote<T> {
 
-	private static Logger logger = LoggerFactory.getLogger(ClientNodeImpl.class);
+	private static final Logger logger = LoggerFactory.getLogger(ClientNodeImpl.class);
+	private static final long serialVersionUID = 485858845631346580L;
 
 	/**
 	 * The current state/phase in which this client process is (eg, search or assertion generation)
@@ -95,14 +90,14 @@ public class ClientNodeImpl implements ClientNodeLocal, ClientNodeRemote {
 
 	protected Registry registry;
 
-    protected final Collection<Listener<Set<? extends Chromosome>>> listeners = Collections.synchronizedList(
-                                                    new ArrayList<Listener<Set<? extends Chromosome>>>());
-	
+    protected final Collection<Listener<Set<T>>> listeners = Collections.synchronizedList(
+			new ArrayList<>());
+
 	protected final ExecutorService searchExecutor = Executors.newSingleThreadExecutor();
 
-	private final BlockingQueue<OutputVariable> outputVariableQueue = new LinkedBlockingQueue<OutputVariable>();
+	private final BlockingQueue<OutputVariable> outputVariableQueue = new LinkedBlockingQueue<>();
 
-	private Collection<Set<? extends Chromosome>> bestSolutions;
+	private Collection<Set<T>> bestSolutions;
 	
 	private Thread statisticsThread; 
 
@@ -116,7 +111,7 @@ public class ClientNodeImpl implements ClientNodeLocal, ClientNodeRemote {
 		clientRmiIdentifier = identifier;
 		doneLatch = new CountDownLatch(1);
 		finishedLatch = new CountDownLatch(1);
-		this.bestSolutions = Collections.synchronizedList(new ArrayList<Set<? extends Chromosome>>(Properties.NUM_PARALLEL_CLIENTS));
+		this.bestSolutions = Collections.synchronizedList(new ArrayList<>(Properties.NUM_PARALLEL_CLIENTS));
 	}
 
 	private static class OutputVariable {
@@ -133,23 +128,21 @@ public class ClientNodeImpl implements ClientNodeLocal, ClientNodeRemote {
 	@Override
 	public void startNewSearch() throws RemoteException, IllegalStateException {
 		if (!state.equals(ClientState.NOT_STARTED)) {
-			throw new IllegalArgumentException("Search has already been started");
+			throw new IllegalStateException("Search has already been started");
 		}
 
 		/*
 		 * Needs to be done on separated thread, otherwise the master will block on this
 		 * function call until end of the search, even if it is on remote process
 		 */
-		searchExecutor.submit(new Runnable() {
-			@Override
-			public void run() {
-				changeState(ClientState.STARTED);
+		searchExecutor.submit(() -> {
+			changeState(ClientState.STARTED);
 
-				//Before starting search, let's activate the sandbox
-				if (Properties.SANDBOX) {
-					Sandbox.initializeSecurityManagerForSUT();
-				}
-				List<TestGenerationResult> results = new ArrayList<TestGenerationResult>();
+			//Before starting search, let's activate the sandbox
+			if (Properties.SANDBOX) {
+				Sandbox.initializeSecurityManagerForSUT();
+			}
+			List<TestGenerationResult> results = new ArrayList<>();
 
 				try {
 					// Starting a new search
@@ -177,16 +170,15 @@ public class ClientNodeImpl implements ClientNodeLocal, ClientNodeRemote {
 					Sandbox.resetDefaultSecurityManager();
 				}
 
-				/*
-				 * System is special due to the handling of properties
-				 * 
-				 *  TODO: re-add it once we save JUnit code in the 
-				 *  best individual. Otherwise, we wouldn't
-				 *  be able to properly create the JUnit files in the
-				 *  system test cases after the search
-				 */
-				//org.evosuite.runtime.System.fullReset();
-			}
+			/*
+			 * System is special due to the handling of properties
+			 *
+			 *  TODO: re-add it once we save JUnit code in the
+			 *  best individual. Otherwise, we wouldn't
+			 *  be able to properly create the JUnit files in the
+			 *  system test cases after the search
+			 */
+			//org.evosuite.runtime.System.fullReset();
 		});
 	}
 
@@ -207,12 +199,12 @@ public class ClientNodeImpl implements ClientNodeLocal, ClientNodeRemote {
 	public void waitUntilDone() {
 		try {
 			doneLatch.await();
-		} catch (InterruptedException e) {
+		} catch (InterruptedException ignored) {
 		}
 	}
 
     @Override
-    public void emigrate(Set<? extends Chromosome> immigrants) {
+    public void emigrate(Set<T> immigrants) {
         try {
             logger.debug(ClientProcess.getPrettyPrintIdentifier() + "Sending " + immigrants.size() + " immigrants");
             masterNode.evosuite_migrate(clientRmiIdentifier, immigrants);
@@ -222,7 +214,7 @@ public class ClientNodeImpl implements ClientNodeLocal, ClientNodeRemote {
     }
 
     @Override
-    public void sendBestSolution(Set<? extends Chromosome> solutions) {
+    public void sendBestSolution(Set<T> solutions) {
         try {
             logger.debug(ClientProcess.getPrettyPrintIdentifier() + "sending best solutions to " + ClientProcess.DEFAULT_CLIENT_NAME);
             masterNode.evosuite_collectBestSolutions(clientRmiIdentifier, solutions);
@@ -262,13 +254,14 @@ public class ClientNodeImpl implements ClientNodeLocal, ClientNodeRemote {
 	}
 
 	@Override
-	public void updateStatistics(Chromosome individual) {
+	public void updateStatistics(T individual) {
 		logger.info("Sending current best individual to master process");
 
 		try {
 			masterNode.evosuite_collectStatistics(clientRmiIdentifier, individual);
 		} catch (RemoteException e) {
 			logger.error("Cannot inform master of change of state", e);
+			throw new IllegalStateException(e);
 		}
 	}
 
@@ -350,7 +343,7 @@ public class ClientNodeImpl implements ClientNodeLocal, ClientNodeRemote {
 	public void stop(){
 		if(statisticsThread!=null){
 			statisticsThread.interrupt();
-			List<OutputVariable> vars = new ArrayList<OutputVariable>();
+			List<OutputVariable> vars = new ArrayList<>();
 			outputVariableQueue.drainTo(vars);
 			for(OutputVariable ov : vars) {
 				try {
@@ -432,7 +425,12 @@ public class ClientNodeImpl implements ClientNodeLocal, ClientNodeRemote {
 				}
 
 				try {
+					// We have to deactivate the archive when measuring coverage
+					// otherwise it would complain about unknown goals
+					boolean archive = Properties.TEST_ARCHIVE;
+					Properties.TEST_ARCHIVE = false;
 					CoverageAnalysis.analyzeCoverage();
+					Properties.TEST_ARCHIVE = archive;
 
 				} catch (Throwable t) {
 					logger.error("Error when analysing coverage for: "
@@ -463,38 +461,35 @@ public class ClientNodeImpl implements ClientNodeLocal, ClientNodeRemote {
 		 * Needs to be done on separated thread, otherwise the master will block on this
 		 * function call until end of the search, even if it is on remote process
 		 */
-		searchExecutor.submit(new Runnable() {
-			@Override
-			public void run() {
-				changeState(ClientState.STARTED);
-				Sandbox.goingToExecuteSUTCode();
-                TestGenerationContext.getInstance().goingToExecuteSUTCode();
-				Sandbox.goingToExecuteUnsafeCodeOnSameThread();
+		searchExecutor.submit(() -> {
+			changeState(ClientState.STARTED);
+			Sandbox.goingToExecuteSUTCode();
+			TestGenerationContext.getInstance().goingToExecuteSUTCode();
+			Sandbox.goingToExecuteUnsafeCodeOnSameThread();
 
-				try {
-					LoggingUtils.getEvoLogger().info("* Analyzing classpath (dependency analysis)");
-					DependencyAnalysis.analyzeClass(Properties.TARGET_CLASS,
-							Arrays.asList(ClassPathHandler.getInstance().getClassPathElementsForTargetProject()));
-					StringBuffer fileNames = new StringBuffer();
-					for(Class<?> clazz : TestCluster.getInstance().getAnalyzedClasses()) {
-						fileNames.append(clazz.getName());
-						fileNames.append("\n");
-					}
-					LoggingUtils.getEvoLogger().info("* Writing class dependencies to file "+fileName);
-					FileIOUtils.writeFile(fileNames.toString(), fileName);
-				} catch (Throwable t) {
-					logger.error("Error when analysing coverage for: "
-							+ Properties.TARGET_CLASS + " with seed "
-							+ Randomness.getSeed() + ". Configuration id : "
-							+ Properties.CONFIGURATION_ID, t);
-				} finally {
-					Sandbox.doneWithExecutingUnsafeCodeOnSameThread();
-					Sandbox.doneWithExecutingSUTCode();
-                    TestGenerationContext.getInstance().doneWithExecutingSUTCode();
+			try {
+				LoggingUtils.getEvoLogger().info("* Analyzing classpath (dependency analysis)");
+				DependencyAnalysis.analyzeClass(Properties.TARGET_CLASS,
+						Arrays.asList(ClassPathHandler.getInstance().getClassPathElementsForTargetProject()));
+				StringBuffer fileNames = new StringBuffer();
+				for (Class<?> clazz : TestCluster.getInstance().getAnalyzedClasses()) {
+					fileNames.append(clazz.getName());
+					fileNames.append("\n");
 				}
-
-				changeState(ClientState.DONE);
+				LoggingUtils.getEvoLogger().info("* Writing class dependencies to file " + fileName);
+				FileIOUtils.writeFile(fileNames.toString(), fileName);
+			} catch (Throwable t) {
+				logger.error("Error when analysing coverage for: "
+						+ Properties.TARGET_CLASS + " with seed "
+						+ Randomness.getSeed() + ". Configuration id : "
+						+ Properties.CONFIGURATION_ID, t);
+			} finally {
+				Sandbox.doneWithExecutingUnsafeCodeOnSameThread();
+				Sandbox.doneWithExecutingSUTCode();
+				TestGenerationContext.getInstance().doneWithExecutingSUTCode();
 			}
+
+			changeState(ClientState.DONE);
 		});
 	}
 
@@ -535,25 +530,25 @@ public class ClientNodeImpl implements ClientNodeLocal, ClientNodeRemote {
 	}
 	
     @Override
-    public void immigrate(Set<? extends Chromosome> migrants) throws RemoteException {
+    public void immigrate(Set<T> migrants) throws RemoteException {
         logger.debug(ClientProcess.getPrettyPrintIdentifier() + "receiving "
                 + (migrants != null ? migrants.size() : 0) + " immigrants");
         fireEvent(migrants);
     }
 
     @Override
-    public void collectBestSolutions(Set<? extends Chromosome> solutions) throws RemoteException {
+    public void collectBestSolutions(Set<T> solutions) throws RemoteException {
         logger.debug(ClientProcess.getPrettyPrintIdentifier() + "added solution to set");
         bestSolutions.add(solutions);
     }
 
     @Override
-    public void addListener(Listener<Set<? extends Chromosome>> listener) {
+    public void addListener(Listener<Set<T>> listener) {
 	    listeners.add(listener);
     }
 
     @Override
-    public void deleteListener(Listener<Set<? extends Chromosome>> listener) {
+    public void deleteListener(Listener<Set<T>> listener) {
 	    listeners.remove(listener);
     }
 
@@ -563,8 +558,8 @@ public class ClientNodeImpl implements ClientNodeLocal, ClientNodeRemote {
      * @param event
      *            the event to fire
      */
-    private void fireEvent(Set<? extends Chromosome> event) {
-        for (Listener<Set<? extends Chromosome>> listener : listeners) {
+    private void fireEvent(Set<T> event) {
+        for (Listener<Set<T>> listener : listeners) {
             listener.receiveEvent(event);
         }
     }
@@ -575,10 +570,10 @@ public class ClientNodeImpl implements ClientNodeLocal, ClientNodeRemote {
      * 
      * @return the list of collected best solutions or null if there is a timeout
      */
-    public Set<Set<? extends Chromosome>> getBestSolutions() {
+    public Set<Set<T>> getBestSolutions() {
         do {
             if (bestSolutions.size() == (Properties.NUM_PARALLEL_CLIENTS - 1)) {
-                return new HashSet<Set<? extends Chromosome>>(bestSolutions);
+                return new HashSet<>(bestSolutions);
             }
         } while (finishedLatch.getCount() != 0);
         

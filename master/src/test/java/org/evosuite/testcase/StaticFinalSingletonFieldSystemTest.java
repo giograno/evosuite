@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (C) 2010-2018 Gordon Fraser, Andrea Arcuri and EvoSuite
  * contributors
  *
@@ -34,7 +34,6 @@ import org.junit.Before;
 import org.junit.Test;
 
 import com.examples.with.different.packagename.staticfield.StaticFinalSingletonField;
-import com.examples.with.different.packagename.staticfield.SaticSingletonField;
 
 public class StaticFinalSingletonFieldSystemTest extends SystemTestBase {
 
@@ -45,7 +44,7 @@ public class StaticFinalSingletonFieldSystemTest extends SystemTestBase {
 		Properties.RESET_STATIC_FINAL_FIELDS = true;
 
 		Properties.SANDBOX = true;
-		Properties.JUNIT_CHECK = true;
+		Properties.JUNIT_CHECK = Properties.JUnitCheckValues.TRUE;
 		Properties.JUNIT_TESTS = true;
 		Properties.PURE_INSPECTORS = true;
 		Properties.OUTPUT_VARIABLES = "" + RuntimeVariable.HadUnstableTests;
@@ -62,8 +61,8 @@ public class StaticFinalSingletonFieldSystemTest extends SystemTestBase {
 
 		Object result = evosuite.parseCommandLine(command);
 
-		GeneticAlgorithm<?> ga = getGAFromResult(result);
-		TestSuiteChromosome best = (TestSuiteChromosome) ga.getBestIndividual();
+		GeneticAlgorithm<TestSuiteChromosome> ga = getGAFromResult(result);
+		TestSuiteChromosome best = ga.getBestIndividual();
 
 		System.out.println(best.toString());
 		
@@ -74,7 +73,7 @@ public class StaticFinalSingletonFieldSystemTest extends SystemTestBase {
 		Assert.assertEquals("Unexpected unstabled test cases were generated",Boolean.FALSE, unstable.getValue());
 
 		double best_fitness = best.getFitness();
-		Assert.assertTrue("Optimal coverage was not achieved ", best_fitness == 0.0);
+        Assert.assertEquals("Optimal coverage was not achieved ", 0.0, best_fitness, 0.0);
 		
 	}
 
