@@ -11,7 +11,7 @@ import java.util.List;
 
 /**
  * @author Giovanni Grano, Annibale Panichella
- *
+ * <p>
  * Implements a strategy to include the performance indicators in MOSA.
  * In this approach, we replace the crowding distance with the score obtained by
  * the combination of the performance scores. In this implementation of
@@ -25,8 +25,10 @@ public class IndicatorComparisonStrategy implements PerformanceStrategy {
 
     /**
      * Computes the performance scores for the front and set the distance to - the score itself
-     * @param front
-     *          the front for which we have to set the distances to
+     * The performance score is computed with a min-max strategy as described in the paper
+     * "Testing with Fewer Resources: An Adaptive Approach to Performance-Aware Test Case Generation"
+     *
+     * @param front the front for which we have to set the distances to
      */
     @Override
     public void setDistances(List<TestChromosome> front) {
@@ -34,7 +36,7 @@ public class IndicatorComparisonStrategy implements PerformanceStrategy {
             individual.setDistance(0.0);
         }
 
-        for(String ind : front.get(0).getIndicatorValues().keySet()){
+        for (String ind : front.get(0).getIndicatorValues().keySet()) {
             logger.debug("Indicator = {}", ind);
             comparator.setIndicator(ind);
             double min = Collections.min(front, comparator).getIndicatorValue(ind);

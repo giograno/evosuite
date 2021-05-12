@@ -26,7 +26,6 @@ import org.evosuite.ga.comparators.OnlyCrowdingComparator;
 import org.evosuite.ga.metaheuristics.mosa.structural.MultiCriteriaManager;
 import org.evosuite.ga.operators.ranking.CrowdingDistance;
 import org.evosuite.performance.AbstractIndicator;
-import org.evosuite.performance.indicator.IndicatorsFactory;
 import org.evosuite.testcase.TestChromosome;
 import org.evosuite.testcase.TestFitnessFunction;
 import org.evosuite.utils.LoggingUtils;
@@ -35,7 +34,6 @@ import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 
 /**
  * Implementation of the DynaMOSA (Many Objective Sorting Algorithm) described in the paper
@@ -55,9 +53,6 @@ public class DynaMOSA extends AbstractMOSA {
 
     protected CrowdingDistance<TestChromosome> distance = new CrowdingDistance<>();
 
-    /* (todo) the list of performance indicators */
-    protected List<AbstractIndicator> indicators;
-
     /**
      * Constructor based on the abstract class {@link AbstractMOSA}.
      *
@@ -65,8 +60,6 @@ public class DynaMOSA extends AbstractMOSA {
      */
     public DynaMOSA(ChromosomeFactory<TestChromosome> factory) {
         super(factory);
-//		(todo)
-        indicators = IndicatorsFactory.getPerformanceIndicator();
     }
 
     /** {@inheritDoc} */
@@ -178,34 +171,7 @@ public class DynaMOSA extends AbstractMOSA {
             this.notifyIteration();
         }
 
-        /* -------------------------- calculate the performance indicators to save them ---------------------------*/
-//		/* todo-gio: remove from here
-//        Set<TestChromosome> archive = goalsManager.getArchive();
-//        computePerformanceMetrics(archive);
-//        printPerformanceMetrics(archive);
-        /* -------------------------- end of part for performance operators to save them ---------------------------*/
-
         this.notifySearchFinished();
-    }
-
-    // (todo) move to
-    protected void computePerformanceMetrics(Set<TestChromosome> tests) {
-        tests.forEach(t -> indicators.forEach(i -> i.getIndicatorValue(t)));
-    }
-
-    protected void printPerformanceMetrics(Set<TestChromosome> tests) {
-        LoggingUtils.getEvoLogger().info("\nNumber of tests = {} ", tests.size());
-        LoggingUtils.getEvoLogger().info("* Indicators:");
-
-        for (AbstractIndicator indicator : indicators) {
-            double value = 0;
-
-            for (TestChromosome tch : tests) {
-                value += tch.getIndicatorValue(indicator.getIndicatorId());
-            }
-
-            LoggingUtils.getEvoLogger().info("* Indicator value for {} is {}", indicator, value);
-        }
     }
 
     /**

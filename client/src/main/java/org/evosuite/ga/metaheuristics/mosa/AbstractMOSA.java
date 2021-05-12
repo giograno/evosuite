@@ -262,15 +262,11 @@ public abstract class AbstractMOSA extends GeneticAlgorithm<TestChromosome> {
 	 * 
 	 * @param chromosome TestChromosome to clean
 	 */
-	private void clearCachedResults(TestChromosome chromosome) {
+	protected void clearCachedResults(TestChromosome chromosome) {
 		chromosome.clearCachedMutationResults();
 		chromosome.clearCachedResults();
 		chromosome.clearMutationHistory();
 		chromosome.getFitnessValues().clear();
-
-		// (todo) check to clean the information about the performance
-		chromosome.getIndicatorValues().clear();
-		chromosome.setPerformanceScore(Double.MAX_VALUE);
 	}
 
 	/**

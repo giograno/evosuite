@@ -3,12 +3,14 @@ package org.evosuite.performance.indicator;
 import org.evosuite.performance.AbstractIndicator;
 import org.evosuite.testcase.TestCase;
 import org.evosuite.testcase.TestChromosome;
-import org.evosuite.testcase.statements.*;
+import org.evosuite.testcase.statements.ConstructorStatement;
+import org.evosuite.testcase.statements.FunctionalMockStatement;
+import org.evosuite.testcase.statements.MethodStatement;
+import org.evosuite.testcase.statements.Statement;
 
 /**
- * @author annibale.panichella
- * @author sebastiano
- *
+ * @author Annibale Panichella, Sebastiano Panichella
+ * <p>
  * This class implements a static performance indicator: it measures the number of method calls contained
  * in a test case. Therefore, it does not look at the covered production code
  */
@@ -25,7 +27,7 @@ public class MethodCallCounter extends AbstractIndicator {
         double nMethodCalls = 0;
         TestCase tc = test.getTestCase();
 
-        for (Statement stmt : tc){
+        for (Statement stmt : tc) {
             if (isMethodCall(stmt))
                 nMethodCalls++;
         }

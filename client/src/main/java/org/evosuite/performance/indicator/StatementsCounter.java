@@ -5,7 +5,7 @@ import org.evosuite.testcase.TestChromosome;
 import org.evosuite.testcase.statements.Statement;
 
 /**
- * @author giograno
+ * @author Giovanni Grano
  * <p>
  * This class implements a static performance indicator;
  * It measures the number of statements in a test case.

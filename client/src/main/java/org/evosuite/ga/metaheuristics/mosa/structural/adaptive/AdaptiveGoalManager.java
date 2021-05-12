@@ -6,9 +6,6 @@ import org.evosuite.coverage.branch.BranchCoverageTestFitness;
 import org.evosuite.coverage.line.LineCoverageTestFitness;
 import org.evosuite.coverage.method.MethodCoverageFactory;
 import org.evosuite.coverage.mutation.WeakMutationTestFitness;
-import org.evosuite.ga.FitnessFunction;
-import org.evosuite.ga.archive.CoverageArchive;
-import org.evosuite.ga.comparators.PerformanceScoreComparator;
 import org.evosuite.ga.metaheuristics.GeneticAlgorithm;
 import org.evosuite.ga.metaheuristics.mosa.structural.MultiCriteriaManager;
 import org.evosuite.performance.AbstractIndicator;
@@ -25,19 +22,15 @@ import java.util.*;
 /**
  * The version of the budget manager needed for the adaptive version (implement the different calculation of the
  * fitness function)
- * todo-gio: is this now the right place for the computation of the fitness function?
+ *
  * @author Annibale Panichella, Giovanni Grano
  */
 public class AdaptiveGoalManager extends MultiCriteriaManager {
 
     private static final Logger logger = LoggerFactory.getLogger(AdaptiveGoalManager.class);
 
-    // todo-gio: check those
     protected final Map<Integer, TestFitnessFunction> lineMap = new LinkedHashMap<>();
     protected final Map<Integer, TestFitnessFunction> weakMutationMap = new LinkedHashMap<>();
-
-    // todo-gio: we can replace this one!
-    private final PerformanceScoreComparator comparator = new PerformanceScoreComparator();
 
     /**
      * Stores the best values to check for heuristic stagnation
@@ -69,129 +62,85 @@ public class AdaptiveGoalManager extends MultiCriteriaManager {
     }
 
     @Override
-    //todo-gio: this is the new interface for the calculate fitness that I should implement
     public void calculateFitness(TestChromosome c, GeneticAlgorithm<TestChromosome> ga) {
-        super.calculateFitness(c, ga);
+        TestCase test = c.getTestCase();
+        ExecutionResult result = TestCaseExecutor.runTest(test);
+        c.setLastExecutionResult(result);
+        c.setChanged(false);
 
+        computePerformanceMetrics(c);
+
+        if (result.hasTimeout() || result.hasTestException() || result.getTrace().getCoveredLines().size() == 0) {
+            currentGoals.forEach(f -> c.setFitness(f, Double.MAX_VALUE)); // assume minimization
+            c.setPerformanceScore(Double.MAX_VALUE);
+            return;
+        }
+
+        Set<TestFitnessFunction> visitedTargets = new LinkedHashSet<>(getUncoveredGoals().size() * 2);
+        LinkedList<TestFitnessFunction> targets = new LinkedList<>(this.currentGoals);
+
+        boolean toArchive = false;
+
+        while (targets.size() > 0 && !ga.isFinished()) {
+            TestFitnessFunction target = targets.poll();
+
+            int past_size = visitedTargets.size();
+            visitedTargets.add(target);
+            if (past_size == visitedTargets.size())
+                continue;
+
+            assert target != null;
+            double fitness = target.getFitness(c);
+            if (bestValues.get(target) == null || fitness < bestValues.get(target)) {
+                bestValues.put(target, fitness);
+                this.hasBetterObjectives = true;
+                toArchive = true;
+            }
+
+            if (fitness == 0.0) {
+                toArchive = true;
+                updateCoveredGoals(target, c);
+                this.bestValues.remove(target);
+                if (target instanceof BranchCoverageTestFitness) {
+                    for (TestFitnessFunction child : graph.getStructuralChildren(target)) {
+                        targets.addLast(child);
+                    }
+                    for (TestFitnessFunction dependentTarget : dependencies.get(target)) {
+                        targets.addLast(dependentTarget);
+                    }
+                }
+            } else {
+                currentGoals.add(target);
+            }
+
+        }
+        currentGoals.removeAll(this.getCoveredGoals());
+
+        /* update of the archives */
+        if (toArchive)
+            updateArchive(c, result);
     }
 
-//    @Override
-//    public void calculateFitness(TestChromosome c) {
-//        this.runTest(c);
-//
-//        ExecutionResult result = c.getLastExecutionResult();
-//        computePerformanceMetrics(c);
-//
-//        /* check exceptions and if the test does not cover anything */
-//        if (result.hasTimeout() || result.hasTestException() || result.getTrace().getCoveredLines().size() == 0) {
-//            for (FitnessFunction<T> f : currentGoals)
-//                c.setFitness(f, Double.MAX_VALUE);
-//
-//            c.setPerformanceScore(Double.MAX_VALUE);
-//            return;
-//        }
-//
-//        /* ------------------------------------- update of best values ----------------------------------- */
-//        // 1) we update the set of currents goals
-//        Set<TestFitnessFunction> visitedTargets = new LinkedHashSet<>(getUncoveredGoals().size() * 2);
-//        LinkedList<TestFitnessFunction> targets = new LinkedList<>(this.currentGoals);
-//
-//        boolean toArchive = false;
-//
-//        while (targets.size() > 0) {
-//            TestFitnessFunction fitnessFunction = targets.poll();
-//
-//            int past_size = visitedTargets.size();
-//            visitedTargets.add(fitnessFunction);
-//            if (past_size == visitedTargets.size())
-//                continue;
-//
-//            double value = fitnessFunction.getFitness(c);
-//            if (bestValues.get(fitnessFunction) == null || value < bestValues.get(fitnessFunction)) {
-//                bestValues.put(fitnessFunction, value);
-//                this.hasBetterObjectives = true;
-//                toArchive = true;
-//            }
-//
-//            if (value == 0.0) {
-//                toArchive = true;
-//                updateCoveredGoals(fitnessFunction, c);
-//                this.bestValues.remove(fitnessFunction);
-//                if (fitnessFunction instanceof BranchCoverageTestFitness) {
-//                    for (TestFitnessFunction child : graph.getStructuralChildren(fitnessFunction)) {
-//                        targets.addLast(child);
-//                    }
-//                    for (TestFitnessFunction dependentTarget : dependencies.get(fitnessFunction)) {
-//                        targets.addLast(dependentTarget);
-//                    }
-//                }
-//            } else {
-//                currentGoals.add(fitnessFunction);
-//            }
-//
-//        }
-//        currentGoals.removeAll(this.getCoveredGoals());
-//        /* update of the archives */
-//        if (toArchive)
-//            updateArchive(c, result);
-//    }
-
-//    @Override
-//    public void updateArchive(TestChromosome c, ExecutionResult result) {
-//        // todo-gio: there is no update archive anymore in the super class
-//        super.updateArchive(c, result);
-//        if (ArrayUtils.contains(Properties.CRITERION, Properties.Criterion.LINE)) {
-//            for (Integer line : result.getTrace().getCoveredLines()) {
-//                updateCoveredGoals(this.lineMap.get(line), c);
-//            }
-//        }
-//        if (ArrayUtils.contains(Properties.CRITERION, Properties.Criterion.WEAKMUTATION)) {
-//            for (Integer id : result.getTrace().getInfectedMutants()) {
-//                if (this.weakMutationMap.containsKey(id))
-//                    updateCoveredGoals(this.weakMutationMap.get(id), c);
-//            }
-//        }
-//        if (ArrayUtils.contains(Properties.CRITERION, Properties.Criterion.METHOD)) {
-//            for (String id : result.getTrace().getCoveredMethods()) {
-//                TestFitnessFunction ff = MethodCoverageFactory.createMethodTestFitness(Properties.TARGET_CLASS, id);
-//                updateCoveredGoals(ff, c);
-//            }
-//        }
-//    }
-
-    /**
-     * We overrides here the default behavior that looks at the size for the update of the archive!
-     * Here, we look at the min-max normalized performance score; the higher the better.
-     * Consider to use the base implementation providing some comparators.
-     * todo-gio: we don't need this; just define a new secondary objective with the performance indicators
-     * (we can maybe set this in the constructor of the adaptiveDynaMOSA class
-     */
-//    @Override
-//    @SuppressWarnings("Duplicates")
-//    protected void updateCoveredGoals(FitnessFunction<T> f, T tc) {
-//        TestChromosome tch = (TestChromosome) tc;
-//        tch.getTestCase().getCoveredGoals().add((TestFitnessFunction) f);
-//
-//        // update covered targets
-//        T best = coveredGoals.get(f);
-//        if (best == null) {
-//            coveredGoals.put(f, tc);
-//            uncoveredGoals.remove(f);
-//            currentGoals.remove(f);
-//            CoverageArchive.getArchiveInstance().updateArchive((TestFitnessFunction) f, tch, tc.getFitness(f));
-//        } else {
-//            boolean toUpdate = comparator.compare(tc, best) == -1;
-//            if (toUpdate) {
-//                coveredGoals.put(f, tc);
-//                CoverageArchive.getArchiveInstance().updateArchive((TestFitnessFunction) f, tch, tc.getFitness(f));
-//            }
-//        }
-//    }
-
-    //todo-gio: handle there the update of the archive
     @Override
-    protected void updateCoveredGoals(TestFitnessFunction f, TestChromosome tc) {
-        super.updateCoveredGoals(f, tc);
+    public void updateArchive(TestChromosome c, ExecutionResult result) {
+        super.updateArchive(c, result);
+        if (ArrayUtils.contains(Properties.CRITERION, Properties.Criterion.LINE)) {
+            for (Integer line : result.getTrace().getCoveredLines()) {
+                updateCoveredGoals(this.lineMap.get(line), c);
+            }
+        }
+        if (ArrayUtils.contains(Properties.CRITERION, Properties.Criterion.WEAKMUTATION)) {
+            for (Integer id : result.getTrace().getInfectedMutants()) {
+                if (this.weakMutationMap.containsKey(id))
+                    updateCoveredGoals(this.weakMutationMap.get(id), c);
+            }
+        }
+        if (ArrayUtils.contains(Properties.CRITERION, Properties.Criterion.METHOD)) {
+            for (String id : result.getTrace().getCoveredMethods()) {
+                TestFitnessFunction ff = MethodCoverageFactory.createMethodTestFitness(Properties.TARGET_CLASS, id);
+                updateCoveredGoals(ff, c);
+            }
+        }
     }
 
     /**
@@ -223,6 +172,11 @@ public class AdaptiveGoalManager extends MultiCriteriaManager {
         this.indicators = indicators;
     }
 
+    /**
+     * Computes the set of performance indicator on a given test
+     *
+     * @param test the test to compute the values for
+     */
     public void computePerformanceMetrics(TestChromosome test) {
         if (test.getIndicatorValues().size() > 0)
             return;
@@ -236,12 +190,12 @@ public class AdaptiveGoalManager extends MultiCriteriaManager {
         logger.debug("performance score for {} = {}", test.hashCode(), test.getPerformanceScore());
     }
 
-//    @Override
-//    public Set<T> getArchive() {
-//        Set<T> set = new HashSet<>();
-//        for (TestChromosome tch : CoverageArchive.getArchiveInstance().getSolutions()) {
-//            set.add((T) tch);
-//        }
-//        return set;
-//    }
+    /**
+     * Returns the current solutions in the archive
+     *
+     * @return a set of {@link TestChromosome}
+     */
+    public Set<TestChromosome> getArchive() {
+        return this.archive.getSolutions();
+    }
 }

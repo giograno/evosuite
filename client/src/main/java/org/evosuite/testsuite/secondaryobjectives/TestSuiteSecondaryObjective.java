@@ -55,7 +55,7 @@ public class TestSuiteSecondaryObjective {
           secondaryObjectiveInstance = new RhoTestSuiteSecondaryObjective();
           break;
         case PERFORMANCE:
-          secondaryObjectiveInstance = new MinimizePerformanceSecondaryObjective();
+          secondaryObjectiveInstance = new MinimizeSuitePerformanceSecondaryObjective();
           break;
         default:
           throw new RuntimeException(
