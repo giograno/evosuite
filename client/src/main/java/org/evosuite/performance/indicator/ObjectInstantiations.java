@@ -23,7 +23,6 @@ import java.util.Map;
  * objects instatiated by a test case.
  * Need the Criterion.DEFUSE set in <code>Properties</code>
  * <p>
- * todo: STILL TO CHECK!
  * todo: actually it uses the getDefCounter statit method for the DefUsePool class
  */
 public class ObjectInstantiations extends AbstractIndicator {
@@ -68,7 +67,6 @@ public class ObjectInstantiations extends AbstractIndicator {
                     } else {
                         methods.put(fullyQualifiedName, set + 1);
                     }
-
                 }
             }
         }
